@@ -80,6 +80,24 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo
 });
 
+// Multer for deposit proof uploads (separate filenames)
+const depositStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".png";
+    const userId = req.user?.id || "anon";
+    cb(null, `deposit_${userId}_${Date.now()}${ext}`);
+  },
+});
+
+const depositUpload = multer({
+  storage: depositStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo max
+});
+
 // Tasks will be read from the database `tasks` table when requested.
 // Invitation code and admin user are handled via DB migrations/setup instead of
 // keeping an in-memory store here. Authentication middleware is defined later
@@ -1333,6 +1351,9 @@ app.get(
           d.user_id AS userId,
           d.amount_cents AS amountCents,
           d.full_name AS depositorFullName,
+          d.payer_rib AS payerRib,
+          d.screenshot_path AS screenshotPath,
+          dm.motif AS methodMotif,
           d.status,
           d.created_at AS createdAt,
           u.email AS userEmail,
@@ -1343,6 +1364,7 @@ app.get(
          FROM deposits d
          JOIN users u ON d.user_id = u.id
          LEFT JOIN bank_accounts b ON b.user_id = u.id
+         LEFT JOIN deposit_methods dm ON dm.id = d.method_id
          ORDER BY d.created_at DESC`
       );
 
@@ -1426,6 +1448,10 @@ app.post(
             d.id,
             d.user_id AS userId,
             d.amount_cents AS amountCents,
+            d.full_name AS depositorFullName,
+            d.payer_rib AS payerRib,
+            d.screenshot_path AS screenshotPath,
+            dm.motif AS methodMotif,
             d.status,
             d.created_at AS createdAt,
             u.email AS userEmail,
@@ -1436,6 +1462,7 @@ app.post(
            FROM deposits d
            JOIN users u ON d.user_id = u.id
            LEFT JOIN bank_accounts b ON b.user_id = u.id
+           LEFT JOIN deposit_methods dm ON dm.id = d.method_id
            WHERE d.id = ? LIMIT 1`,
           [id]
         );
@@ -1492,6 +1519,10 @@ app.post(
             d.id,
             d.user_id AS userId,
             d.amount_cents AS amountCents,
+            d.full_name AS depositorFullName,
+            d.payer_rib AS payerRib,
+            d.screenshot_path AS screenshotPath,
+            dm.motif AS methodMotif,
             d.status,
             d.created_at AS createdAt,
             u.email AS userEmail,
@@ -1502,6 +1533,7 @@ app.post(
            FROM deposits d
            JOIN users u ON d.user_id = u.id
            LEFT JOIN bank_accounts b ON b.user_id = u.id
+           LEFT JOIN deposit_methods dm ON dm.id = d.method_id
            WHERE d.id = ? LIMIT 1`,
           [id]
         );
@@ -1564,6 +1596,9 @@ app.get(
             u.email AS userEmail,
             u.full_name AS fullName,
             d.full_name AS depositorName,
+            d.payer_rib AS depositorRib,
+            d.screenshot_path AS screenshotPath,
+            dm.motif AS methodMotif,
             d.amount_cents AS amountCents,
             d.status,
             'DEPOSIT' AS type,
@@ -1573,13 +1608,14 @@ app.get(
             b.holder_name AS holderName
            FROM deposits d
            JOIN users u ON d.user_id = u.id
-           LEFT JOIN bank_accounts b ON b.user_id = u.id`);
+           LEFT JOIN bank_accounts b ON b.user_id = u.id
+           LEFT JOIN deposit_methods dm ON dm.id = d.method_id`);
         rows = rows.concat(drows.map(r => ({ kind: 'deposit', ...r })));
       }
 
       // Build CSV
       const headers = [
-        'opType','id','userId','userEmail','fullName','depositorName','amountMad','amountCents','status','type','createdAt','bankName','iban','holderName'
+        'opType','id','userId','userEmail','fullName','depositorName','depositorRib','screenshotPath','methodMotif','amountMad','amountCents','status','type','createdAt','bankName','iban','holderName'
       ];
 
       const csvRows = rows.map((r) => [
@@ -1589,6 +1625,9 @@ app.get(
         r.userEmail || '',
         r.fullName || '',
         r.depositorName || '',
+        r.depositorRib || '',
+        r.screenshotPath || '',
+        r.methodMotif || '',
         r.amountCents != null ? (r.amountCents / 100).toFixed(2) : '',
         r.amountCents != null ? r.amountCents : '',
         r.status || '',
@@ -1611,6 +1650,124 @@ app.get(
     } catch (err) {
       console.error('Error exporting CSV:', err);
       return res.status(500).json({ message: 'Erreur lors de l' + "export CSV" });
+    }
+  }
+);
+
+// 👑 ADMIN : résumé utilisateurs (nouveaux / VIP)
+app.get(
+  "/api/admin/users-summary",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      // Nouveaux utilisateurs des 7 derniers jours
+      const [dailyRows] = await pool.execute(
+        `SELECT 
+           DATE(created_at) AS d, 
+           COUNT(*) AS cnt,
+           SUM(CASE WHEN vip_level = 'VIP' THEN 1 ELSE 0 END) AS vipCount,
+           SUM(CASE WHEN vip_level <> 'VIP' OR vip_level IS NULL THEN 1 ELSE 0 END) AS freeCount
+         FROM users
+         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+         GROUP BY DATE(created_at)
+         ORDER BY d`
+      );
+
+      const [vipRow] = await pool.execute(
+        `SELECT
+            COUNT(*) AS totalUsers,
+            SUM(CASE WHEN vip_level = 'VIP' THEN 1 ELSE 0 END) AS vipCount
+         FROM users`
+      );
+
+      return res.json({
+        daily: dailyRows || [],
+        totalUsers: vipRow && vipRow[0] ? vipRow[0].totalUsers || 0 : 0,
+        vipCount: vipRow && vipRow[0] ? vipRow[0].vipCount || 0 : 0,
+      });
+    } catch (err) {
+      console.error("Error in /api/admin/users-summary:", err);
+      return res.status(500).json({ message: "Erreur serveur (résumé utilisateurs)." });
+    }
+  }
+);
+
+// --- Méthode de dépôt (compte destinataire + preuve) ---
+// Récupère les méthodes de dépôt actives (destinataire, banque, RIB…)
+app.get("/api/deposit-methods", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, bank_name AS bankName, recipient_name AS recipientName, account_number AS accountNumber, rib, motif, instructions
+       FROM deposit_methods
+       WHERE is_active = 1
+       ORDER BY id ASC`
+    );
+    return res.json(rows || []);
+  } catch (err) {
+    console.error("Error fetching deposit methods:", err);
+    return res.status(500).json({ message: "Erreur serveur (méthodes de dépôt)." });
+  }
+});
+
+// Nouvelle route de dépôt avec upload de capture
+app.post(
+  "/api/wallet/deposit-v2",
+  authMiddleware,
+  depositUpload.single("screenshot"),
+  async (req, res) => {
+    try {
+      const { amount, depositorName, depositorRib, methodId } = req.body || {};
+      const amountNumber = Number(amount);
+      if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+        return res.status(400).json({ message: "Montant de dépôt invalide." });
+      }
+      if (amountNumber < 80) {
+        return res.status(400).json({ message: "Le montant minimum de dépôt est de 80 MAD." });
+      }
+
+      const methodIdNum = methodId ? Number(methodId) : null;
+      let methodRow = null;
+      if (methodIdNum) {
+        const [mrows] = await pool.execute(
+          `SELECT id FROM deposit_methods WHERE id = ? AND is_active = 1 LIMIT 1`,
+          [methodIdNum]
+        );
+        if (!mrows || mrows.length === 0) {
+          return res.status(400).json({ message: "Méthode de dépôt inconnue ou inactive." });
+        }
+        methodRow = mrows[0];
+      } else {
+        // fallback: pick first active method
+        const [mrows] = await pool.execute(
+          `SELECT id FROM deposit_methods WHERE is_active = 1 ORDER BY id ASC LIMIT 1`
+        );
+        methodRow = mrows && mrows[0] ? mrows[0] : null;
+      }
+
+      const finalMethodId = methodRow ? methodRow.id : null;
+      const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
+
+      await pool.execute(
+        `INSERT INTO deposits (user_id, amount_cents, status, full_name, payer_rib, screenshot_path, method_id)
+         VALUES (?, ?, 'PENDING', ?, ?, ?, ?)`,
+        [
+          req.user.id,
+          Math.round(amountNumber * 100),
+          depositorName || null,
+          depositorRib || null,
+          proofPath,
+          finalMethodId,
+        ]
+      );
+
+      return res.json({
+        message: "Dépôt enregistré. Il sera vérifié par un administrateur.",
+        proofUrl: proofPath,
+      });
+    } catch (err) {
+      console.error("Error in /api/wallet/deposit-v2:", err);
+      return res.status(500).json({ message: "Erreur serveur lors de l'enregistrement du dépôt." });
     }
   }
 );

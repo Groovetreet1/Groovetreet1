@@ -110,7 +110,11 @@ export default function AdminWithdrawalsPage() {
       if (!res.ok) {
         setError(data.message || "Erreur lors de l'action.");
       } else {
-        alert(data.message);
+        try {
+          window.dispatchEvent(new CustomEvent("toast", { detail: { message: data.message || "Action effectuée", type: "success" } }));
+        } catch (_) {
+          alert(data.message || "Action effectuée");
+        }
         // Update the withdrawal in the list (keep history) and show details
         if (data.withdrawal) {
           setWithdrawals((prev) => prev.map((w) => (w.id === data.withdrawal.id ? { ...w, ...data.withdrawal } : w)));

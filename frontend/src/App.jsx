@@ -9,6 +9,7 @@ import AdminWithdrawalsPage from "./pages/AdminWithdrawalsPage.jsx";
 import AdminTasksPage from "./pages/AdminTasksPage.jsx";
 import AdminDepositsPage from "./pages/AdminDepositsPage.jsx";
 import ReferralsPage from "./pages/ReferralsPage.jsx";
+import DepositPage from "./pages/DepositPage.jsx";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
 
         {/* Dashboard utilisateur */}
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/deposit" element={<DepositPage />} />
         <Route path="/referrals" element={<ReferralsPage />} />
 
         {/* Page de retrait */}

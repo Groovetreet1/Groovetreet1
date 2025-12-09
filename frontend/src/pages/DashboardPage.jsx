@@ -33,6 +33,11 @@ export default function DashboardPage() {
   const [depositError, setDepositError] = useState("");
   const [depositLoading, setDepositLoading] = useState(false);
   const [depositFullName, setDepositFullName] = useState("");
+  const [adminOps, setAdminOps] = useState({ deposits: [], withdrawals: [] });
+  const [adminOpsLoading, setAdminOpsLoading] = useState(false);
+  const [adminOpsError, setAdminOpsError] = useState("");
+  const [adminUsersSummary, setAdminUsersSummary] = useState({ daily: [], totalUsers: 0, vipCount: 0 });
+  const [adminUsersError, setAdminUsersError] = useState("");
   const [showVipModal, setShowVipModal] = useState(false);
   const [vipLoading, setVipLoading] = useState(false);
   const [vipError, setVipError] = useState("");
@@ -64,7 +69,7 @@ export default function DashboardPage() {
 
       sidebarBalance: "Solde",
       sidebarStatus: "Statut",
-      sidebarVip: "VIP",
+      sidebarVip: "",
       sidebarDeposit: "Dépôt",
       sidebarWithdraw: "Retrait",
       sidebarMenuTitle: "Menu",
@@ -77,11 +82,11 @@ export default function DashboardPage() {
       menuSupport: "Service client",
 
       overviewBalanceTitle: "Solde disponible",
-      overviewWelcome: "Bienvenue sur ta promo app",
+      overviewWelcome: "",
       overviewTasksCompletedTitle: "Tâches complétées",
       overviewTasksCompletedHint: "Historique détaillé à implémenter",
-      overviewVipTitle: "Statut VIP",
-      overviewVipHint: "Système d’upgrade à venir",
+      overviewVipTitle: "Statut",
+      overviewVipHint: "",
 
       tasksSectionTitle: "Tâches disponibles",
       tasksRefresh: "Rafraîchir",
@@ -185,11 +190,11 @@ export default function DashboardPage() {
       menuSupport: "خدمة الزبناء",
 
       overviewBalanceTitle: "الرصيد المتاح",
-      overviewWelcome: "مرحبا بيك فـ برومو آب",
+      overviewWelcome: "",
       overviewTasksCompletedTitle: "الخدمات لي سالّيتي",
       overviewTasksCompletedHint: "تاريخ مفصل نزيدوه من بعد",
-      overviewVipTitle: "ستاتيو VIP",
-      overviewVipHint: "السيستيم ديال الترقية جاي من بعد",
+      overviewVipTitle: "الحالة",
+      overviewVipHint: "",
 
       tasksSectionTitle: "الخدمات المتاحة",
       tasksRefresh: "تحديت",
@@ -290,11 +295,11 @@ export default function DashboardPage() {
       menuSupport: "Support",
 
       overviewBalanceTitle: "Available balance",
-      overviewWelcome: "Welcome to Promo App",
+      overviewWelcome: "",
       overviewTasksCompletedTitle: "Completed tasks",
       overviewTasksCompletedHint: "Detailed history coming soon",
-      overviewVipTitle: "VIP status",
-      overviewVipHint: "Upgrade system coming soon",
+      overviewVipTitle: "Status",
+      overviewVipHint: "",
 
       tasksSectionTitle: "Available tasks",
       tasksRefresh: "Refresh",
@@ -543,6 +548,34 @@ if (loginTimeStr) {
       }
     };
 
+    const fetchAdminOps = async () => {
+      if (parsedUser?.role !== "admin") return;
+      setAdminOpsError("");
+      setAdminOpsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const [depRes, witRes] = await Promise.all([
+          fetch(buildApiUrl("/api/admin/deposits"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(buildApiUrl("/api/admin/withdrawals"), { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const depData = await depRes.json();
+        const witData = await witRes.json();
+        if (!depRes.ok) setAdminOpsError(depData.message || "Erreur dépôts admin.");
+        if (!witRes.ok) setAdminOpsError((prev) => prev || witData.message || "Erreur retraits admin.");
+        if (depRes.ok && witRes.ok) {
+          setAdminOps({
+            deposits: Array.isArray(depData) ? depData : [],
+            withdrawals: Array.isArray(witData) ? witData : [],
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        setAdminOpsError("Erreur réseau (stats admin).");
+      } finally {
+        setAdminOpsLoading(false);
+      }
+    };
+
     const fetchBank = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -583,6 +616,32 @@ if (loginTimeStr) {
     fetchHistory();
     fetchBank();
     fetchReferrals();
+    fetchAdminOps();
+
+    if (parsedUser?.role === "admin") {
+      const fetchAdminUsers = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(buildApiUrl("/api/admin/users-summary"), {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setAdminUsersError(data.message || "Erreur résumé utilisateurs.");
+          } else {
+            setAdminUsersSummary({
+              daily: Array.isArray(data.daily) ? data.daily : [],
+              totalUsers: data.totalUsers || 0,
+              vipCount: data.vipCount || 0,
+            });
+          }
+        } catch (err) {
+          console.error(err);
+          setAdminUsersError("Erreur réseau (utilisateurs admin).");
+        }
+      };
+      fetchAdminUsers();
+    }
 
     // SSE live updates
     let es;
@@ -717,15 +776,16 @@ if (loginTimeStr) {
       );
       const data = await res.json();
       if (!res.ok) {
-        alert(data.message || "Erreur lors de la tâche");
+        setToast({ message: data.message || "Erreur lors de la tâche", type: "error" });
+        setTimeout(() => setToast(null), 4000);
         return;
       }
 
-      alert(
-        `Tâche complétée ! +${data.reward_cents / 100} MAD (nouveau solde : ${
-          data.new_balance_cents / 100
-        } MAD)`
-      );
+      setToast({
+        message: `Tâche complétée ! +${(data.reward_cents / 100).toFixed(2)} MAD (solde: ${(data.new_balance_cents / 100).toFixed(2)} MAD)`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4000);
 
       setUser((prev) => {
         if (!prev) return prev;
@@ -747,9 +807,11 @@ if (loginTimeStr) {
           localStorage.setItem("user", JSON.stringify(updated));
           return updated;
         });
-        alert(`(Simulé) Tâche complétée ! +${reward / 100} MAD`);
+        setToast({ message: `(Simulé) Tâche complétée ! +${(reward / 100).toFixed(2)} MAD`, type: "success" });
+        setTimeout(() => setToast(null), 4000);
       } else {
-        alert("Erreur réseau");
+        setToast({ message: "Erreur réseau", type: "error" });
+        setTimeout(() => setToast(null), 4000);
       }
     }
   };
@@ -882,11 +944,7 @@ if (loginTimeStr) {
   };
 
   const openDepositModal = () => {
-    setDepositAmount("");
-    setDepositError("");
-    // prefill depositor name with current user's full name when available
-    setDepositFullName(user?.fullName || "");
-    setShowDepositModal(true);
+    navigate("/deposit");
   };
 
   const closeDepositModal = () => {
@@ -1001,7 +1059,9 @@ if (loginTimeStr) {
       if (!res.ok) {
         setVipError(data.message || "Erreur lors du passage en VIP.");
       } else {
-        alert(data.message || "Tu es maintenant VIP !");
+        const successMsg = data.message || "Tu es maintenant VIP !";
+        setToast({ message: successMsg, type: "success" });
+        setTimeout(() => setToast(null), 5000);
         setUser((prev) => {
           if (!prev) return prev;
           const updated = {
@@ -1126,6 +1186,85 @@ if (loginTimeStr) {
       .slice(0, 6);
   })();
 
+  const adminSeries = (() => {
+    if (user?.role !== "admin") return [];
+    const days = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - idx));
+      return d;
+    });
+    const deposits = adminOps.deposits || [];
+    const withdrawals = adminOps.withdrawals || [];
+
+    const sumForDate = (items) => {
+      return (dateObj) =>
+        items
+          .filter((it) => {
+            const t = new Date(it.createdAt || it.created_at);
+            return (
+              t.getFullYear() === dateObj.getFullYear() &&
+              t.getMonth() === dateObj.getMonth() &&
+              t.getDate() === dateObj.getDate()
+            );
+          })
+          .reduce((acc, it) => acc + (it.amountCents || it.amount_cents || 0), 0) / 100;
+    };
+
+    const depFor = sumForDate(deposits);
+    const witFor = sumForDate(withdrawals);
+
+    return days.map((d) => ({
+      date: d.toISOString().slice(0, 10),
+      label: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`,
+      depositsMad: depFor(d),
+      withdrawalsMad: witFor(d),
+    }));
+  })();
+
+  const adminUsersSeries = (() => {
+    if (user?.role !== "admin") return [];
+    const days = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - idx));
+      return d;
+    });
+    const daily = adminUsersSummary.daily || [];
+    return days.map((d) => {
+      const match = daily.find((row) => {
+        const rd = new Date(row.d || row.D || row.date);
+        return (
+          rd.getFullYear() === d.getFullYear() &&
+          rd.getMonth() === d.getMonth() &&
+          rd.getDate() === d.getDate()
+        );
+      });
+      const label = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`;
+      const total = match ? Number(match.cnt || match.count || 0) : 0;
+      const vip = match ? Number(match.vipCount || match.vip || 0) : 0;
+      const free = match
+        ? Number(
+            match.freeCount ??
+              match.free ??
+              (total - vip)
+          )
+        : 0;
+      return {
+        date: d.toISOString().slice(0, 10),
+        label,
+        total,
+        vip: vip < 0 ? 0 : vip,
+        free: free < 0 ? 0 : free,
+      };
+    });
+  })();
+
+  const isUserVip = (user?.vipLevel || "").toUpperCase().includes("VIP");
+  const vipLabel = isUserVip ? "VIP" : (user?.vipLevel || "FREE");
+
   const sidebarLinks = [
     { id: "overview", label: L.menuOverview },
     { id: "history", label: L.menuHistory },
@@ -1176,28 +1315,30 @@ if (loginTimeStr) {
                   onClick={handleAdminClick}
                   className="text-[11px] border border-indigo-500 px-3 py-1 rounded-lg hover:bg-indigo-600/20 mr-2"
                 >
-                  {L.admin}
+                  Retrait
                 </button>
                 <button
                   onClick={handleAdminDepositsClick}
                   className="text-[11px] border border-emerald-500 px-3 py-1 rounded-lg hover:bg-emerald-600/20"
                 >
-                  Dépôts (admin)
+                  Dépôts
                 </button>
               </>
             )}
-            <button
-              onClick={() => navigate("/referrals")}
-              className="text-[11px] border border-violet-500 px-3 py-1 rounded-lg hover:bg-violet-600/20"
-            >
-              Parrainage
-            </button>
+            {user.role !== "admin" && (
+              <button
+                onClick={() => navigate("/referrals")}
+                className="text-[11px] border border-violet-500 px-3 py-1 rounded-lg hover:bg-violet-600/20"
+              >
+                Parrainage
+              </button>
+            )}
             <div className="relative">
               <button
                 onClick={() => setShowNotifications((s) => !s)}
                 className="text-[11px] border border-slate-600 px-3 py-1 rounded-lg hover:bg-slate-800 flex items-center gap-1"
               >
-                🔔 Notifications
+                🔔
                 {notifications.length > 0 && (
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                 )}
@@ -1245,15 +1386,6 @@ if (loginTimeStr) {
                 </div>
               )}
             </div>
-            <span className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-              {L.headerBalancePrefix} : {(user.balanceCents || 0) / 100} MAD
-            </span>
-            <button
-              className="text-[11px] border border-slate-600 px-3 py-1 rounded-lg hover:bg-slate-800"
-              onClick={handleLogout}
-            >
-              {L.logout}
-            </button>
           </div>
         </div>
       </header>
@@ -1287,21 +1419,8 @@ if (loginTimeStr) {
             </div>
           </div>
 
-          <div className="text-xs bg-slate-800/80 rounded-xl p-3 border border-slate-700 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">{L.sidebarBalance}</span>
-              <span className="font-semibold text-emerald-300">
-                {(user.balanceCents || 0) / 100} MAD
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>{L.sidebarStatus}</span>
-              <span className="text-indigo-300">
-                {L.sidebarVip} {user.vipLevel || "FREE"}
-              </span>
-            </div>
-            </div>
-            <div className="mt-2 flex flex-col gap-2">
+          
+          <div className="mt-2 flex flex-col gap-2">
   {/* Bouton Dépôt : toujours visible */}
   <button
     onClick={openDepositModal}
@@ -1399,6 +1518,12 @@ if (loginTimeStr) {
                   {link.label}
                 </button>
               ))}
+              <button
+                onClick={handleLogout}
+                className="w-full text-left text-xs px-3 py-2 rounded-lg transition bg-red-600 text-white border border-red-700 hover:bg-red-700 mt-2"
+              >
+                {L.logout}
+              </button>
             </div>
           </nav>
         </aside>
@@ -1408,137 +1533,250 @@ if (loginTimeStr) {
           {/* OVERVIEW */}
           {activeSection === "overview" && (
             <>
-              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
-                  <p className="text-xs text-slate-400 mb-1">
-                    {L.overviewBalanceTitle}
-                  </p>
-                  <p className="text-2xl font-semibold mb-1">
-                    {(user.balanceCents || 0) / 100} MAD
-                  </p>
-                  <p className="text-[11px] text-emerald-300">
-                    {L.overviewWelcome}
-                  </p>
-                </div>
-
-                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
-                  <p className="text-xs text-slate-400 mb-1">
-                    {L.overviewTasksCompletedTitle}
-                  </p>
-                  <p className="text-2xl font-semibold mb-1">—</p>
-                  <p className="text-[11px] text-slate-400">
-                    {L.overviewTasksCompletedHint}
-                  </p>
-                </div>
-
-                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
-                  <p className="text-xs text-slate-400 mb-1">
-                    {L.overviewVipTitle}
-                  </p>
-                  <p className="text-2xl font-semibold mb-1">
-                    {user.vipLevel || "FREE"}
-                  </p>
-                  <p className="text-[11px] text-indigo-300">
-                    {L.overviewVipHint}
-                  </p>
-                </div>
-
-                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
-                  <p className="text-xs text-slate-400 mb-1">Code d'invitation</p>
-                  <p className="text-2xl font-semibold mb-1 tracking-[0.08em] text-indigo-300">
-                    {referrals?.inviteCode || user.inviteCode || "—"}
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    Filleuls : {referrals?.invitedCount ?? 0} — Gains : {((referrals?.totalBonusCents ?? 0) / 100).toFixed(2)} MAD
-                  </p>
-                  {referralError && (
-                    <p className="text-[10px] text-red-400 mt-1">{referralError}</p>
-                  )}
-                </div>
-              </section>
-
-              <section className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold tracking-tight">
-                    {L.tasksSectionTitle}
-                  </h2>
-                  <button
-                    className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800"
-                    onClick={() => window.location.reload()}
-                  >
-                    {L.tasksRefresh}
-                  </button>
-                </div>
-
-                {loadingTasks ? (
-                  <p className="text-xs text-slate-400">
-                    {L.tasksLoading}
-                  </p>
-                ) : tasks.length === 0 ? (
-                  <p className="text-xs text-slate-400">
-                    {L.tasksNone}
-                  </p>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {tasks.map((task) => {
-                      const locked = isTaskLockedForUser(task);
-                      return (
-                        <article
-                          key={task.id}
-                          className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between"
-                        >
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="text-sm font-semibold">
-                                {task.title}
-                              </h3>
-                              <span className="text-[11px] px-2 py-1 rounded-full bg-slate-700 text-slate-200">
-                                {L.taskLevelLabel}: {task.minVipLevel || "FREE"}
+              {user.role === "admin" ? (
+                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 mb-6">
+                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-slate-400">Nouveaux utilisateurs (7 derniers jours)</p>
+                      {adminOpsLoading && <span className="text-[10px] text-slate-400">Chargement…</span>}
+                    </div>
+                    {adminUsersError ? (
+                      <p className="text-[11px] text-red-300">{adminUsersError}</p>
+                    ) : adminUsersSeries.length === 0 ? (
+                      <p className="text-[11px] text-slate-400">Aucune donnée.</p>
+                    ) : (
+                      (() => {
+                        const maxVal = Math.max(
+                          1,
+                          ...adminUsersSeries.map((x) => (x.free || 0) + (x.vip || 0))
+                        );
+                        return (
+                          <>
+                            <div className="flex items-end gap-2 h-32">
+                              {adminUsersSeries.map((d) => {
+                                const vipHeight = Math.round(((d.vip || 0) / maxVal) * 100);
+                                const freeHeight = Math.round(((d.free || 0) / maxVal) * 100);
+                                const total = (d.free || 0) + (d.vip || 0);
+                                return (
+                                  <div key={d.date} className="flex flex-col items-center w-10">
+                                    <div className="w-full h-28 rounded-sm bg-slate-700/40 overflow-hidden flex flex-col justify-end">
+                                      <div
+                                        className="bg-emerald-400/80 w-full"
+                                        style={{ height: `${vipHeight}%` }}
+                                        title={`${d.vip || 0} VIP`}
+                                      />
+                                      <div
+                                        className="bg-indigo-400/80 w-full"
+                                        style={{ height: `${freeHeight}%` }}
+                                        title={`${d.free || 0} Free`}
+                                      />
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-1">{d.label}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400 mt-2">
+                              <span className="flex items-center gap-1">
+                                <span className="h-2 w-2 rounded-full bg-indigo-400/80" />
+                                <span>Free</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="h-2 w-2 rounded-full bg-emerald-400/80" />
+                                <span>VIP</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="h-2 w-2 rounded-full bg-slate-500/80" />
+                                <span>Total : {adminUsersSummary.totalUsers || 0}</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500/80" />
+                                <span>VIP : {adminUsersSummary.vipCount || 0}</span>
                               </span>
                             </div>
-                            <p className="text-xs text-slate-300 mb-2">
-                              {task.description}
-                            </p>
-                            <p className="text-[11px] text-slate-400">
-                              {L.taskMinDuration}:{" "}
-                              <span className="font-medium">
-                                {task.durationSeconds} s
-                              </span>
-                            </p>
-                            <p className="text-[11px] text-emerald-300">
-                              {L.taskReward}:{" "}
-                              <span className="font-semibold">
-                                {task.rewardCents / 100} MAD
-                              </span>
-                            </p>
-                            {task.videoUrl && (
-                              <p className="text-[11px] text-slate-500 mt-1">
-                                {L.taskVideoHint}
-                              </p>
-                            )}
-                            {locked && (
-                              <p className="text-[11px] text-amber-300 mt-2">
-                                Réservé aux comptes VIP.
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            className={`mt-3 w-full rounded-lg py-2 text-xs font-semibold transition ${
-                              locked
-                                ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                                : "bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99]"
-                            }`}
-                            onClick={() => !locked && handleOpenTask(task)}
-                            disabled={locked}
-                          >
-                            {locked ? "Réservé VIP" : L.taskStartButton}
-                          </button>
-                        </article>
-                      );
-                    })}
+                          </>
+                        );
+                      })()
+                    )}
                   </div>
-                )}
-              </section>
+                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-slate-400">Dépôts vs retraits (7 derniers jours)</p>
+                      {adminOpsLoading && <span className="text-[10px] text-slate-400">Chargement…</span>}
+                    </div>
+                    {adminOpsError ? (
+                      <p className="text-[11px] text-red-300">{adminOpsError}</p>
+                    ) : adminSeries.length === 0 ? (
+                      <p className="text-[11px] text-slate-400">Aucune donnée disponible.</p>
+                    ) : (
+                      <>
+                        <div className="flex items-end gap-2 h-36">
+                          {adminSeries.map((d) => {
+                            const maxVal = Math.max(1, ...adminSeries.map((x) => Math.max(x.depositsMad, x.withdrawalsMad)));
+                            const depHeight = Math.round((d.depositsMad / maxVal) * 100);
+                            const witHeight = Math.round((d.withdrawalsMad / maxVal) * 100);
+                            return (
+                              <div key={d.date} className="flex flex-col items-center w-10">
+                                <div className="flex flex-col justify-end gap-1 h-28 w-full">
+                                  <div
+                                    className="w-full rounded-sm bg-emerald-500/70"
+                                    style={{ height: `${depHeight}%` }}
+                                    title={`Dépôts: ${d.depositsMad.toFixed(2)} MAD`}
+                                  />
+                                  <div
+                                    className="w-full rounded-sm bg-amber-400/80"
+                                    style={{ height: `${witHeight}%` }}
+                                    title={`Retraits: ${d.withdrawalsMad.toFixed(2)} MAD`}
+                                  />
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-1">{d.label}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block" /> Dépôts
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="h-2 w-2 rounded-full bg-amber-400 inline-block" /> Retraits
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
+                    <p className="text-xs text-slate-400 mb-1">{L.overviewBalanceTitle}</p>
+                    <p className="text-2xl font-semibold mb-1">{(user.balanceCents || 0) / 100} MAD</p>
+                    <p className="text-[11px] text-emerald-300">{L.overviewWelcome}</p>
+                  </div>
+                  <div
+                    className={`relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between ${
+                      isUserVip
+                        ? "bg-gradient-to-br from-indigo-700 via-purple-700 to-amber-500 border border-amber-300/60 shadow-[0_10px_35px_rgba(234,179,8,0.25)] text-white"
+                        : "bg-slate-800/80 border border-slate-700"
+                    }`}
+                  >
+                    {isUserVip && (
+                      <>
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.15),transparent_40%),radial-gradient(circle_at_40%_80%,rgba(255,255,255,0.12),transparent_35%)]" />
+                        <span className="pointer-events-none absolute top-2 right-4 text-amber-200 text-xl animate-pulse">✦</span>
+                        <span className="pointer-events-none absolute bottom-4 left-6 text-indigo-100 animate-ping">✦</span>
+                        <span className="pointer-events-none absolute top-8 left-10 text-amber-100 animate-ping">✦</span>
+                      </>
+                    )}
+                    <p className="text-xs text-slate-400 mb-1">{L.overviewVipTitle}</p>
+                    <p className="text-2xl font-semibold mb-1">
+                      {vipLabel}
+                    </p>
+                    <p className={`text-[11px] ${isUserVip ? "text-amber-100" : "text-indigo-300"}`}>
+                      {L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
+                    </p>
+                  </div>
+                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
+                    <p className="text-xs text-slate-400 mb-1">Code d'invitation</p>
+                    <p className="text-2xl font-semibold mb-1 tracking-[0.08em] text-indigo-300">
+                      {referrals?.inviteCode || user.inviteCode || "—"}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Filleuls : {referrals?.invitedCount ?? 0} — Gains : {((referrals?.totalBonusCents ?? 0) / 100).toFixed(2)} MAD
+                    </p>
+                    {referralError && <p className="text-[10px] text-red-400 mt-1">{referralError}</p>}
+                  </div>
+                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
+                    <p className="text-xs text-slate-400 mb-1">Langue actuelle</p>
+                    <p className="text-2xl font-semibold mb-1 uppercase">{language}</p>
+                    <p className="text-[11px] text-slate-400">Change-la via l’onglet Langue.</p>
+                  </div>
+                </section>
+              )}
+              {user.role !== "admin" && (
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold tracking-tight">
+                      {L.tasksSectionTitle}
+                    </h2>
+                    <button
+                      className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800"
+                      onClick={() => window.location.reload()}
+                    >
+                      {L.tasksRefresh}
+                    </button>
+                  </div>
+
+                  {loadingTasks ? (
+                    <p className="text-xs text-slate-400">
+                      {L.tasksLoading}
+                    </p>
+                  ) : tasks.length === 0 ? (
+                    <p className="text-xs text-slate-400">
+                      {L.tasksNone}
+                    </p>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {tasks.map((task) => {
+                        const locked = isTaskLockedForUser(task);
+                        return (
+                          <article
+                            key={task.id}
+                            className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <h3 className="text-sm font-semibold">
+                                  {task.title}
+                                </h3>
+                                <span className="text-[11px] px-2 py-1 rounded-full bg-slate-700 text-slate-200">
+                                  {L.taskLevelLabel}: {task.minVipLevel || "FREE"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-300 mb-2">
+                                {task.description}
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                {L.taskMinDuration}:{" "}
+                                <span className="font-medium">
+                                  {task.durationSeconds} s
+                                </span>
+                              </p>
+                              <p className="text-[11px] text-emerald-300">
+                                {L.taskReward}:{" "}
+                                <span className="font-semibold">
+                                  {task.rewardCents / 100} MAD
+                                </span>
+                              </p>
+                              {task.videoUrl && (
+                                <p className="text-[11px] text-slate-500 mt-1">
+                                  {L.taskVideoHint}
+                                </p>
+                              )}
+                              {locked && (
+                                <p className="text-[11px] text-amber-300 mt-2">
+                                  Réservé aux comptes VIP.
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              className={`mt-3 w-full rounded-lg py-2 text-xs font-semibold transition ${
+                                locked
+                                  ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                                  : "bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99]"
+                              }`}
+                              onClick={() => !locked && handleOpenTask(task)}
+                              disabled={locked}
+                            >
+                              {locked ? "Réservé VIP" : L.taskStartButton}
+                            </button>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
 
             </>
           )}

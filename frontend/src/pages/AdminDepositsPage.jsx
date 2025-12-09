@@ -77,7 +77,12 @@ export default function AdminDepositsPage() {
       if (!res.ok) {
         setError(data.message || "Erreur lors de l'action.");
       } else {
-        alert(data.message);
+        try {
+          window.dispatchEvent(new CustomEvent("toast", { detail: { message: data.message || "Action effectuée", type: "success" } }));
+        } catch (_) {
+          // fallback
+          alert(data.message || "Action effectuée");
+        }
         if (data.deposit) {
           setDeposits((prev) => prev.map((d) => (d.id === data.deposit.id ? { ...d, ...data.deposit } : d)));
           setSelectedDeposit(data.deposit);
@@ -265,9 +270,24 @@ export default function AdminDepositsPage() {
               <div><strong>ID:</strong> #{selectedDeposit.id}</div>
               <div><strong>Utilisateur:</strong> {selectedDeposit.userId} — {selectedDeposit.userEmail || ''}</div>
               <div><strong>Nom du déposant:</strong> {selectedDeposit.depositorFullName || selectedDeposit.depositorName || '—'}</div>
+              <div><strong>RIB du déposant:</strong> {selectedDeposit.payerRib || selectedDeposit.depositorRib || '—'}</div>
               <div><strong>Montant:</strong> {selectedDeposit.amountCents / 100} MAD</div>
+              <div><strong>Motif (compte destinataire):</strong> {selectedDeposit.methodMotif || '—'}</div>
               <div><strong>Statut:</strong> <StatusBadge status={selectedDeposit.status} /></div>
               <div><strong>Créé le:</strong> {new Date(selectedDeposit.createdAt).toLocaleString()}</div>
+              {selectedDeposit.screenshotPath && (
+                <div>
+                  <strong>Capture:</strong>{" "}
+                  <a
+                    href={buildApiUrl(selectedDeposit.screenshotPath)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-300 underline"
+                  >
+                    Voir le reçu
+                  </a>
+                </div>
+              )}
               { (selectedDeposit.bankName || selectedDeposit.iban || selectedDeposit.holderName) && (
                 <div className="mt-2">
                   <div className="text-[11px] text-slate-400 mb-1">Informations bancaires du client:</div>
