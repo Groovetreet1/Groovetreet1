@@ -117,9 +117,16 @@ export default function ReferralsPage() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-semibold tracking-tight">{L.title}</div>
-            <div className="text-[11px] text-slate-400">{L.subtitle}</div>
+          <div className="flex items-center gap-2">
+            <img
+              src="/app-icon.png"
+              alt="Windelevery"
+              className="h-8 w-8 rounded-xl object-cover"
+            />
+            <div>
+              <div className="text-sm font-semibold tracking-tight">{L.title}</div>
+              <div className="text-[11px] text-slate-400">{L.subtitle}</div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Link

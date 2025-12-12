@@ -1,0 +1,87 @@
+# Schéma MySQL (référence texte)
+
+## users
+- id INT AUTO_INCREMENT PRIMARY KEY
+- full_name VARCHAR(255) NOT NULL
+- email VARCHAR(255) NOT NULL UNIQUE
+- password_hash VARCHAR(255) NOT NULL
+- vip_level VARCHAR(20) NOT NULL DEFAULT 'FREE'
+- vip_expires_at DATETIME NULL
+- role VARCHAR(20) NOT NULL DEFAULT 'user'
+- balance_cents INT NOT NULL DEFAULT 0
+- invite_code VARCHAR(32) UNIQUE
+- invited_by_user_id INT NULL
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## tasks
+- id INT AUTO_INCREMENT PRIMARY KEY
+- title VARCHAR(255) NOT NULL
+- description TEXT
+- reward_cents INT NOT NULL DEFAULT 0
+- duration_seconds INT NOT NULL DEFAULT 15
+- min_vip_level VARCHAR(20) DEFAULT 'FREE'
+- video_url VARCHAR(512)
+- is_active TINYINT(1) DEFAULT 1
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## deposits
+- id INT AUTO_INCREMENT PRIMARY KEY
+- user_id INT NOT NULL (FK users.id)
+- amount_cents INT NOT NULL
+- status VARCHAR(50) NOT NULL
+- full_name VARCHAR(255)
+- payer_rib VARCHAR(255)
+- screenshot_path VARCHAR(512)
+- method_id INT NULL (FK deposit_methods.id)
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## withdrawals
+- id INT AUTO_INCREMENT PRIMARY KEY
+- user_id INT NOT NULL (FK users.id)
+- amount_cents INT NOT NULL
+- status VARCHAR(50) NOT NULL DEFAULT 'PENDING'
+- type VARCHAR(50) NOT NULL DEFAULT 'WITHDRAW'
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## task_completions
+- id INT AUTO_INCREMENT PRIMARY KEY
+- user_id INT NOT NULL (FK users.id)
+- task_id INT NOT NULL (FK tasks.id)
+- reward_cents INT NOT NULL
+- balance_before_cents INT NOT NULL DEFAULT 0
+- balance_after_cents INT NOT NULL DEFAULT 0
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+- index/unique: ux_task_user (user_id, task_id)
+
+## bank_accounts
+- id INT AUTO_INCREMENT PRIMARY KEY
+- user_id INT NOT NULL UNIQUE (FK users.id)
+- bank_name VARCHAR(255)
+- iban VARCHAR(255)
+- holder_name VARCHAR(255)
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## referrals
+- id INT AUTO_INCREMENT PRIMARY KEY
+- inviter_user_id INT NOT NULL (FK users.id)
+- invited_user_id INT NOT NULL UNIQUE (FK users.id)
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## referral_bonuses
+- id INT AUTO_INCREMENT PRIMARY KEY
+- deposit_id INT NOT NULL UNIQUE (FK deposits.id)
+- inviter_user_id INT NOT NULL (FK users.id)
+- invited_user_id INT NOT NULL (FK users.id)
+- bonus_cents INT NOT NULL
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+## deposit_methods
+- id INT AUTO_INCREMENT PRIMARY KEY
+- bank_name VARCHAR(255) NOT NULL
+- recipient_name VARCHAR(255) NOT NULL
+- account_number VARCHAR(255) NOT NULL
+- rib VARCHAR(255)
+- motif VARCHAR(255)
+- instructions TEXT
+- is_active TINYINT(1) DEFAULT 1
+- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

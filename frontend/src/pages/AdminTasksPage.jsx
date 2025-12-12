@@ -82,7 +82,10 @@ export default function AdminTasksPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6">
       <div className="max-w-2xl mx-auto bg-slate-800/80 border border-slate-700 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Admin — Ajouter une tâche vidéo</h2>
+        <div className="flex items-center gap-2 mb-3">
+          <img src="/app-icon.png" alt="Windelevery" className="h-8 w-8 rounded-xl object-cover" />
+          <h2 className="text-lg font-semibold">Admin — Ajouter une tâche vidéo</h2>
+        </div>
 
         {message && (
           <div className={`mb-4 p-3 rounded ${message.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'}`}>

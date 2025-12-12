@@ -74,7 +74,25 @@ export default function DashboardPage() {
   const [showVipModal, setShowVipModal] = useState(false);
   const [vipLoading, setVipLoading] = useState(false);
   const [vipError, setVipError] = useState("");
-  
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState("");
+  const [promoRoleLoading, setPromoRoleLoading] = useState(false);
+  const [promoRoleMessage, setPromoRoleMessage] = useState("");
+  const [promoCount, setPromoCount] = useState(1);
+  const [promoRedeemInput, setPromoRedeemInput] = useState("");
+  const [promoRedeemMessage, setPromoRedeemMessage] = useState("");
+  const [promoRedeemError, setPromoRedeemError] = useState("");
+  const [promoRedeemLoading, setPromoRedeemLoading] = useState(false);
+  const [showPromoCongrats, setShowPromoCongrats] = useState(false);
+  const [promoCongratsText, setPromoCongratsText] = useState("");
+  const [showPromoRoleModal, setShowPromoRoleModal] = useState(false);
+  const [promoRolePassword, setPromoRolePassword] = useState("");
+  const [promoRolePasswordError, setPromoRolePasswordError] = useState("");
+  const [promoRoleNextState, setPromoRoleNextState] = useState(null);
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
+  const [showPromoForceLogout, setShowPromoForceLogout] = useState(false);
+
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
 
@@ -93,6 +111,11 @@ export default function DashboardPage() {
   const [showBalance, setShowBalance] = useState(false);
   const [toast, setToast] = useState(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
+  const vipDaysLeft =
+    vipExpiresAt && !Number.isNaN(vipExpiresAt.getTime())
+      ? Math.max(0, Math.ceil((vipExpiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
 
   // 🎯 petites traductions FR / EN / Darija
   const translations = {
@@ -111,11 +134,12 @@ export default function DashboardPage() {
       sidebarMenuTitle: "Menu",
 
       menuOverview: "Vue d'ensemble",
-      menuHistory: "Historique dépôts/retraits",
-      menuProfile: "Paramètres du profil",
-      menuBank: "Infos bancaires",
-      menuLanguage: "Langue",
-      menuSupport: "Service client",
+          menuHistory: "Historique dépôts/retraits",
+          menuProfile: "Paramètres du profil",
+          menuBank: "Infos bancaires",
+          menuLanguage: "Langue",
+          menuPromo: "Code promo",
+          menuSupport: "Service client",
 
       overviewBalanceTitle: "Solde disponible",
       overviewWelcome: "",
@@ -218,11 +242,12 @@ export default function DashboardPage() {
       sidebarMenuTitle: "القائمة",
 
       menuOverview: "نظرة عامة",
-      menuHistory: "تاريخ الإيداعات والسحوبات",
-      menuProfile: "إعدادات البروفيل",
-      menuBank: "معلومات البنكة",
-      menuLanguage: "اللغة",
-      menuSupport: "الدعم",
+          menuHistory: "تاريخ الإيداعات والسحوبات",
+          menuProfile: "إعدادات البروفيل",
+          menuBank: "معلومات البنكة",
+          menuLanguage: "اللغة",
+          menuPromo: "كود برومو",
+          menuSupport: "الدعم",
 
       overviewBalanceTitle: "الرصيد المتوفر",
       overviewWelcome: "",
@@ -322,11 +347,12 @@ export default function DashboardPage() {
       sidebarMenuTitle: "Menu",
 
       menuOverview: "Overview",
-      menuHistory: "Deposits / Withdrawals history",
-      menuProfile: "Profile settings",
-      menuBank: "Bank information",
-      menuLanguage: "Language",
-      menuSupport: "Support",
+          menuHistory: "Deposits / Withdrawals history",
+          menuProfile: "Profile settings",
+          menuBank: "Bank information",
+          menuLanguage: "Language",
+          menuPromo: "Promo code",
+          menuSupport: "Support",
 
       overviewBalanceTitle: "Available balance",
       overviewWelcome: "",
@@ -444,6 +470,29 @@ export default function DashboardPage() {
 
   const DEFAULT_TASKS = generateDefaultTasks(6);
 
+  const fetchPromoCodes = async () => {
+    if (!(user?.promoRoleEnabled)) return;
+    try {
+      setPromoLoading(true);
+      setPromoError("");
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/admin/promo-codes"), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPromoError(data.message || "Erreur codes promo.");
+        return;
+      }
+      setPromoCodes(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setPromoError("Erreur réseau (codes promo).");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   useEffect(() => {
     const addNotification = (message, type = 'info') => {
       setNotifications((prev) => [{ id: Date.now() + Math.random(), message, type }, ...prev].slice(0, 10));
@@ -482,14 +531,18 @@ if (loginTimeStr) {
   const now = Date.now();
 
   if (now - loginTime > sixHoursMs) {
-    alert("Ta session a expiré après 6 heures, merci de te reconnecter.");
-    handleLogout();
+    setShowSessionExpired(true);
     return;
   }
 }
 
 
     const parsedUser = JSON.parse(storedUser);
+    // Si admin et promo actif, on force à OFF côté front au refresh
+    if (parsedUser?.role === "admin" && parsedUser?.promoRoleEnabled) {
+      parsedUser.promoRoleEnabled = 0;
+      localStorage.setItem("user", JSON.stringify(parsedUser));
+    }
     setUser(parsedUser);
 
     const fetchTasks = async () => {
@@ -588,8 +641,8 @@ if (loginTimeStr) {
       try {
         const token = localStorage.getItem("token");
         const [depRes, witRes] = await Promise.all([
-          fetch(buildApiUrl("/api/admin/deposits"), { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(buildApiUrl("/api/admin/withdrawals"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(buildApiUrl("/api/admin/deposits?own=1"), { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(buildApiUrl("/api/admin/withdrawals?own=1"), { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         const depData = await depRes.json();
         const witData = await witRes.json();
@@ -676,6 +729,10 @@ if (loginTimeStr) {
       fetchAdminUsers();
     }
 
+        if (parsedUser?.promoRoleEnabled) {
+      fetchPromoCodes();
+    }
+
     // SSE live updates
     let es;
     try {
@@ -739,41 +796,42 @@ if (loginTimeStr) {
         try {
           const token = localStorage.getItem('token');
           if (!token) return;
-      const res = await fetch(buildApiUrl("/api/user/me"), {
+          const res = await fetch(buildApiUrl("/api/user/me"), {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) return;
           const { user: fresh } = await res.json();
           if (!fresh) return;
-           setUser((prev) => {
-             if (!prev) return prev;
-             // Update only if balance or vipLevel changed
-             const vipChanged = fresh.vipLevel !== prev.vipLevel;
-             if (fresh.balanceCents !== prev.balanceCents || vipChanged) {
-               const delta = typeof fresh.balanceCents === 'number' && typeof prev.balanceCents === 'number' ? fresh.balanceCents - prev.balanceCents : null;
-               const updated = {
-                 ...prev,
-                 balanceCents: fresh.balanceCents,
-                 vipLevel: fresh.vipLevel,
-               };
-               localStorage.setItem('user', JSON.stringify(updated));
-               // refresh history to show deposits/withdrawals updates
-               fetchHistory();
-               // Show a toast if balance increased or decreased
-               if (delta && delta !== 0) {
-                 const sign = delta > 0 ? '+' : '-';
-                 const mad = Math.abs(delta) / 100;
-                 setToast({ message: `${sign}${mad.toFixed(2)} MAD`, type: delta > 0 ? 'success' : 'error' });
-                 setTimeout(() => setToast(null), 5000);
-               }
-               if (vipChanged && fresh.vipLevel === 'VIP') {
-                 setNotifications((prev) => [{ id: Date.now(), message: 'Votre upgrade VIP est confirmé.', type: 'success' }, ...prev].slice(0, 10));
-                 setShowNotifications(true);
-               }
-               return updated;
-             }
-             return prev;
-           });
+          setUser((prev) => {
+            if (!prev) return prev;
+            // Update only if balance or VIP status/expiry changed
+            const vipChanged = fresh.vipLevel !== prev.vipLevel || fresh.vipExpiresAt !== prev.vipExpiresAt;
+            if (fresh.balanceCents !== prev.balanceCents || vipChanged) {
+              const delta = typeof fresh.balanceCents === 'number' && typeof prev.balanceCents === 'number' ? fresh.balanceCents - prev.balanceCents : null;
+              const updated = {
+                ...prev,
+                balanceCents: fresh.balanceCents,
+                vipLevel: fresh.vipLevel,
+                vipExpiresAt: fresh.vipExpiresAt ?? prev.vipExpiresAt,
+              };
+              localStorage.setItem('user', JSON.stringify(updated));
+              // refresh history to show deposits/withdrawals updates
+              fetchHistory();
+              // Show a toast if balance increased or decreased
+              if (delta && delta !== 0) {
+                const sign = delta > 0 ? '+' : '-';
+                const mad = Math.abs(delta) / 100;
+                setToast({ message: `${sign}${mad.toFixed(2)} MAD`, type: delta > 0 ? 'success' : 'error' });
+                setTimeout(() => setToast(null), 5000);
+              }
+              if (vipChanged && fresh.vipLevel === 'VIP') {
+                setNotifications((prev) => [{ id: Date.now(), message: 'Votre upgrade VIP est confirmé.', type: 'success' }, ...prev].slice(0, 10));
+                setShowNotifications(true);
+              }
+              return updated;
+            }
+            return prev;
+          });
         } catch (err) {
           // ignore poll errors silently
         }
@@ -792,6 +850,136 @@ if (loginTimeStr) {
       if (es) es.close();
     };
   }, [navigate]);
+
+  const handleGeneratePromo = async () => {
+    setPromoError("");
+    setPromoLoading(true);
+    try {
+      const count = Math.min(Math.max(parseInt(promoCount, 10) || 1, 1), 20);
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/admin/promo-codes"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ count }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPromoError(data.message || "Erreur génération code.");
+      } else {
+        // Prepend new codes
+        const newCodes = Array.isArray(data.codes) ? data.codes.map((c, idx) => ({
+          id: Date.now() + idx,
+          code: c.code,
+          amountCents: c.amountCents,
+          createdAt: new Date().toISOString(),
+        })) : [];
+        setPromoCodes((prev) => [...newCodes, ...prev].slice(0, 50));
+        fetchPromoCodes();
+      }
+    } catch (err) {
+      console.error(err);
+      setPromoError("Erreur réseau (génération code).");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleTogglePromoRole = async (enabled, password = "") => {
+    if (!user?.id) return;
+    try {
+      setPromoRoleLoading(true);
+      setPromoRoleMessage("");
+      setPromoError("");
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl(`/api/admin/users/${user.id}/promo-role`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ enabled, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPromoError(data.message || "Erreur mise à jour rôle promo.");
+        return;
+      }
+      const updated = { ...user, promoRoleEnabled: enabled ? 1 : 0 };
+      setUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+      setPromoRoleMessage(enabled ? "" : "Rôle promo désactivé.");
+      if (enabled) {
+        fetchPromoCodes();
+      } else {
+        setPromoCodes([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setPromoError("Erreur réseau (rôle promo).");
+    } finally {
+      setPromoRoleLoading(false);
+    }
+  };
+
+  const handleRefreshPromo = () => {
+    fetchPromoCodes();
+  };
+
+  const handleRedeemPromo = async () => {
+    setPromoRedeemMessage("");
+    setPromoRedeemError("");
+    const code = (promoRedeemInput || "").trim();
+    if (code.length < 3) {
+      setPromoRedeemError("Code invalide.");
+      return;
+    }
+    try {
+      setPromoRedeemLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/promo/redeem"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPromoRedeemError(data.message || "Erreur code promo.");
+        return;
+      }
+      const addedMad =
+        typeof data.added_cents === "number"
+          ? (data.added_cents / 100).toFixed(2)
+          : null;
+      const msgBase = data.message || "Code appliqué. Montant crédité.";
+      setPromoRedeemMessage(
+        addedMad ? `${msgBase} +${addedMad} MAD.` : msgBase
+      );
+      if (addedMad) {
+        setPromoCongratsText(`Code appliqué : +${addedMad} MAD`);
+        setShowPromoCongrats(true);
+      }
+      setPromoRedeemInput("");
+      if (typeof data.added_cents === "number") {
+        setUser((prev) => {
+          if (!prev) return prev;
+          const updated = { ...prev, balanceCents: (prev.balanceCents || 0) + data.added_cents };
+          localStorage.setItem("user", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setPromoRedeemError("Erreur réseau (code promo).");
+    } finally {
+      setPromoRedeemLoading(false);
+    }
+  };
 
   const handleCompleteTask = async (taskId) => {
     const task = tasks.find((t) => t.id === taskId);
@@ -927,6 +1115,15 @@ if (loginTimeStr) {
 
     if (isFreeLabel) return false;
     return requiresVip && userLevel === "FREE";
+  };
+
+  const formatTaskLevel = (task) => {
+    const raw = (task?.minVipLevel ?? task?.min_vip_level ?? "FREE").toString().trim();
+    const upper = raw.toUpperCase();
+    if (upper === "0" || upper === "LEVEL0" || upper.startsWith("LEVEL 0")) return "VIP";
+    if (upper.includes("VIP")) return "VIP";
+    if (upper.includes("FREE")) return "FREE";
+    return raw || "FREE";
   };
 
   const handlePlayerStateChange = (event) => {
@@ -1097,10 +1294,12 @@ if (loginTimeStr) {
         setTimeout(() => setToast(null), 5000);
         setUser((prev) => {
           if (!prev) return prev;
+          const expiresAt = data.vip_expires_at || data.vipExpiresAt || prev.vipExpiresAt || null;
           const updated = {
             ...prev,
             balanceCents: data.new_balance_cents,
             vipLevel: data.vipLevel || "VIP",
+            vipExpiresAt: expiresAt,
           };
           localStorage.setItem("user", JSON.stringify(updated));
           return updated;
@@ -1121,8 +1320,8 @@ if (loginTimeStr) {
   const handleAdminDepositsClick = () => {
     navigate("/admin/deposits");
   };
-  const handleAddVideoClick = () => {
-    navigate("/admin/tasks");
+  const handleAdminFinanceClick = () => {
+    navigate("/admin/finance");
   };
 
   const changeLanguage = (code) => {
@@ -1297,12 +1496,33 @@ if (loginTimeStr) {
 
   const isUserVip = (user?.vipLevel || "").toUpperCase().includes("VIP");
   const vipLabel = isUserVip ? "VIP" : (user?.vipLevel || "FREE");
+  const formatVipDate = (d) => {
+    try {
+      const locale = language === "en" ? "en-GB" : language === "ar" ? "ar-MA" : "fr-FR";
+      return new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    } catch (e) {
+      return d.toISOString().slice(0, 10);
+    }
+  };
+  const vipExpiryText =
+    isUserVip && vipExpiresAt && !Number.isNaN(vipExpiresAt.getTime())
+      ? (language === "en"
+          ? `Expires on ${formatVipDate(vipExpiresAt)}${vipDaysLeft != null ? ` (${vipDaysLeft} days left)` : ""}`
+          : language === "ar"
+            ? `صالحة حتى ${formatVipDate(vipExpiresAt)}${vipDaysLeft != null ? ` (${vipDaysLeft} يوم متبقي)` : ""}`
+            : `Expire le ${formatVipDate(vipExpiresAt)}${vipDaysLeft != null ? ` (${vipDaysLeft} jours restants)` : ""}`)
+      : null;
 
   const sidebarLinks = [
     { id: "overview", label: L.menuOverview },
     { id: "history", label: L.menuHistory },
     { id: "profile", label: L.menuProfile },
     { id: "bank", label: L.menuBank },
+    { id: "promo", label: L.menuPromo },
     { id: "language", label: L.menuLanguage },
   ];
 
@@ -1321,9 +1541,11 @@ if (loginTimeStr) {
       <header className="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-indigo-600 flex items-center justify-center text-sm font-bold">
-              P
-            </div>
+            <img
+              src="/app-icon.png"
+              alt="Windelevery"
+              className="h-8 w-8 rounded-xl object-cover"
+            />
             <div className={language === "ar" ? "text-right" : ""}>
               <div className="text-sm font-semibold tracking-tight">
                 {L.appTitle}
@@ -1338,12 +1560,6 @@ if (loginTimeStr) {
             {user.role === "admin" && (
               <>
                 <button
-                  onClick={handleAddVideoClick}
-                  className="text-[11px] border border-emerald-500 px-3 py-1 rounded-lg hover:bg-emerald-600/20 mr-2"
-                >
-                  Ajouter vidéo
-                </button>
-                <button
                   onClick={handleAdminClick}
                   className="text-[11px] border border-indigo-500 px-3 py-1 rounded-lg hover:bg-indigo-600/20 mr-2"
                 >
@@ -1354,6 +1570,12 @@ if (loginTimeStr) {
                   className="text-[11px] border border-emerald-500 px-3 py-1 rounded-lg hover:bg-emerald-600/20"
                 >
                   Dépôts
+                </button>
+                <button
+                  onClick={handleAdminFinanceClick}
+                  className="text-[11px] border border-amber-500 px-3 py-1 rounded-lg hover:bg-amber-500/20"
+                >
+                  Finance
                 </button>
               </>
             )}
@@ -1452,32 +1674,34 @@ if (loginTimeStr) {
           </div>
 
           
-          <div className="mt-2 flex flex-col gap-2">
-  {/* Bouton Dépôt : toujours visible */}
-  <button
-    onClick={openDepositModal}
-    className="w-full py-1.5 text-[11px] rounded-lg bg-emerald-600 hover:bg-emerald-700 font-semibold"
-  >
-    {L.sidebarDeposit}
-  </button>
+          {user.role !== "admin" && (
+            <div className="mt-2 flex flex-col gap-2">
+              {/* Bouton Dépôt : toujours visible */}
+              <button
+                onClick={openDepositModal}
+                className="w-full py-1.5 text-[11px] rounded-lg bg-emerald-600 hover:bg-emerald-700 font-semibold"
+              >
+                {L.sidebarDeposit}
+              </button>
 
-  {/* Si FREE → Go VIP, sinon → Retrait */}
-  {user.vipLevel === "FREE" ? (
-    <button
-      onClick={handleUpgradeVip}
-      className="w-full py-1.5 text-[11px] rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
-    >
-      Go VIP (80 MAD)
-    </button>
-  ) : (
-    <button
-      onClick={handleWithdrawClick}
-      className="w-full py-1.5 text-[11px] rounded-lg bg-amber-500 hover:bg-amber-600 font-semibold"
-    >
-      {L.sidebarWithdraw}
-    </button>
-  )}
-</div>
+              {/* Si FREE → Go VIP, sinon → Retrait */}
+              {user.vipLevel === "FREE" ? (
+                <button
+                  onClick={handleUpgradeVip}
+                  className="w-full py-1.5 text-[11px] rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
+                >
+                  Go VIP (80 MAD)
+                </button>
+              ) : (
+                <button
+                  onClick={handleWithdrawClick}
+                  className="w-full py-1.5 text-[11px] rounded-lg bg-amber-500 hover:bg-amber-600 font-semibold"
+                >
+                  {L.sidebarWithdraw}
+                </button>
+              )}
+            </div>
+          )}
 {/* MODAL VIP */}
 {showVipModal && (
   <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-30">
@@ -1537,7 +1761,15 @@ if (loginTimeStr) {
               {L.sidebarMenuTitle}
             </p>
             <div className="space-y-1">
-              {sidebarLinks.map((link) => (
+              {(user.role === "admin"
+                ? sidebarLinks.filter(
+                    (link) =>
+                      !["history", "bank", "deposit", "withdraw"].includes(
+                        link.id
+                      )
+                  )
+                : sidebarLinks
+              ).map((link) => (
                 <button
                   key={link.id}
                   onClick={() => setActiveSection(link.id)}
@@ -1566,7 +1798,7 @@ if (loginTimeStr) {
           {activeSection === "overview" && (
             <>
               {user.role === "admin" ? (
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 mb-6">
+                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
                   <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-slate-400">Nouveaux utilisateurs (7 derniers jours)</p>
@@ -1717,7 +1949,9 @@ if (loginTimeStr) {
                       {vipLabel}
                     </p>
                     <p className={`text-[11px] ${isUserVip ? "text-amber-100" : "text-indigo-300"}`}>
-                      {L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
+                      {vipExpiryText
+                        ? vipExpiryText
+                        : L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
                     </p>
                   </div>
                   <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
@@ -1774,7 +2008,7 @@ if (loginTimeStr) {
                                   {task.title}
                                 </h3>
                                 <span className="text-[11px] px-2 py-1 rounded-full bg-slate-700 text-slate-200">
-                                  {L.taskLevelLabel}: {task.minVipLevel || "FREE"}
+                                  {L.taskLevelLabel}: {formatTaskLevel(task)}
                                 </span>
                               </div>
                               <p className="text-xs text-slate-300 mb-2">
@@ -2145,6 +2379,156 @@ if (loginTimeStr) {
               </p>
             </section>
           )}
+
+          {/* PROMO CODE (user) */}
+          {activeSection === "promo" && (
+            <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+              <h2 className="text-sm font-semibold tracking-tight mb-3">Code promo</h2>
+              <p className="text-[11px] text-slate-400 mb-3">
+                Utilisable une seule fois par utilisateur. Saisis ton code puis valide.
+              </p>
+              {promoRedeemMessage && (
+                <div className="mb-2 text-[11px] rounded bg-emerald-900/60 text-emerald-200 px-3 py-2">
+                  {promoRedeemMessage}
+                </div>
+              )}
+              {promoRedeemError && (
+                <div className="mb-2 text-[11px] rounded bg-red-900/50 text-red-200 px-3 py-2">
+                  {promoRedeemError}
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+                <input
+                  type="text"
+                  value={promoRedeemInput}
+                  onChange={(e) => setPromoRedeemInput(e.target.value)}
+                  placeholder="Ex: ABCD1234"
+                  className="flex-1 px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  maxLength={32}
+                />
+                <button
+                  onClick={handleRedeemPromo}
+                  disabled={promoRedeemLoading}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {promoRedeemLoading ? "..." : "Valider"}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* POPUP SESSION EXPIRÉE */}
+          {showSessionExpired && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-red-500/60 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center animate-bounce">
+                <div className="text-3xl mb-2">😢</div>
+                <h3 className="text-lg font-semibold text-red-200 mb-2">Session expirée</h3>
+                <p className="text-sm text-slate-200 mb-4">
+                  Ta session a expiré après 6 heures, merci de te reconnecter.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowSessionExpired(false);
+                    handleLogout();
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Se reconnecter
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* POPUP FORCE LOGOUT PROMO ROLE */}
+          {showPromoForceLogout && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-amber-500/60 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center animate-bounce">
+                <div className="text-3xl mb-2">⚠️</div>
+                <h3 className="text-lg font-semibold text-amber-200 mb-2">Rôle promo actif</h3>
+                <p className="text-sm text-slate-200 mb-4">
+                  Pour des raisons de sécurité, reconnecte-toi avant d'utiliser le rôle promo.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowPromoForceLogout(false);
+                    handleLogout();
+                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-900"
+                >
+                  Se reconnecter
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* POPUP FÉLICITATION CODE PROMO */}
+          {showPromoCongrats && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-emerald-500/60 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center">
+                <div className="text-3xl mb-2">🎉</div>
+                <h3 className="text-lg font-semibold text-emerald-200 mb-2">Félicitations !</h3>
+                <p className="text-sm text-slate-200 mb-4">{promoCongratsText || "Code appliqué. Montant crédité."}</p>
+                <button
+                  onClick={() => setShowPromoCongrats(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL CONFIRMATION RÔLE PROMO */}
+          {showPromoRoleModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div className="bg-slate-900 border border-amber-500/60 shadow-2xl rounded-2xl p-5 w-[90%] max-w-sm">
+                <h3 className="text-sm font-semibold text-amber-200 mb-3">
+                  {promoRoleNextState ? "Activer le rôle promo" : "Désactiver le rôle promo"}
+                </h3>
+                <p className="text-[11px] text-slate-300 mb-3">
+                  Merci d'entrer le mot de passe de confirmation.
+                </p>
+                {promoRolePasswordError && (
+                  <div className="mb-2 text-[11px] rounded bg-red-900/60 text-red-200 px-3 py-2">
+                    {promoRolePasswordError}
+                  </div>
+                )}
+                <input
+                  type="password"
+                  value={promoRolePassword}
+                  onChange={(e) => {
+                    setPromoRolePasswordError("");
+                    setPromoRolePassword(e.target.value);
+                  }}
+                  placeholder="Mot de passe admin"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setShowPromoRoleModal(false)}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-700 hover:bg-slate-600"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!promoRolePassword || promoRolePassword.length < 3) {
+                        setPromoRolePasswordError("Mot de passe requis.");
+                        return;
+                      }
+                      setShowPromoRoleModal(false);
+                      handleTogglePromoRole(!!promoRoleNextState, promoRolePassword);
+                    }}
+                    disabled={promoRoleLoading}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-900 disabled:opacity-60"
+                  >
+                    {promoRoleLoading ? "..." : "Confirmer"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* SUPPORT */}
   {activeSection === "support" && (

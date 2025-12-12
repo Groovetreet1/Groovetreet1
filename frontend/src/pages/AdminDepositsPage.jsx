@@ -8,6 +8,7 @@ export default function AdminDepositsPage() {
   const [error, setError] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [user, setUser] = useState(null);
+  const [showAllOperations, setShowAllOperations] = useState(false);
   const [selectedDeposit, setSelectedDeposit] = useState(null);
   const [page, setPage] = useState(1);
   const pageSize = 5;
@@ -27,9 +28,11 @@ export default function AdminDepositsPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        if (!data?.user || data.user.role !== "admin") {
+        if (!data?.user || (data.user.role !== "admin" && data.user.role !== "superadmin")) {
           navigate("/dashboard");
+          return;
         }
+        setUser(data.user);
       })
       .catch(() => navigate("/login"));
 
@@ -38,7 +41,15 @@ export default function AdminDepositsPage() {
       setLoading(true);
 
       try {
-        const res = await fetch(buildApiUrl("/api/admin/deposits"), {
+        const stored = localStorage.getItem("user");
+        let storedUser = null;
+        try { storedUser = stored ? JSON.parse(stored) : null; } catch (_) { storedUser = null; }
+        const wantAll = showAllOperations && storedUser && storedUser.role === 'superadmin';
+        const url = wantAll
+          ? buildApiUrl("/api/admin/deposits?all=1")
+          : buildApiUrl("/api/admin/deposits?own=1");
+
+        const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -69,7 +80,7 @@ export default function AdminDepositsPage() {
     }
 
     fetchDeposits();
-  }, [navigate]);
+  }, [navigate, showAllOperations]);
 
   const handleAction = async (id, action) => {
     setError("");
@@ -148,9 +159,11 @@ export default function AdminDepositsPage() {
       <header className="w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-indigo-600 flex items-center justify-center text-sm font-bold">
-              A
-            </div>
+            <img
+              src="/app-icon.png"
+              alt="Windelevery"
+              className="h-8 w-8 rounded-xl object-cover"
+            />
             <div>
               <div className="text-sm font-semibold tracking-tight">Admin – Dépôts</div>
               <div className="text-[11px] text-slate-400">Validation des dépôts en attente</div>
@@ -171,7 +184,9 @@ export default function AdminDepositsPage() {
             <button
               onClick={() => {
                 const token = localStorage.getItem('token');
-                fetch(buildApiUrl("/api/admin/export?kind=deposits"), { headers: { Authorization: `Bearer ${token}` } })
+                const useAll = showAllOperations && user && user.role === 'superadmin';
+                const query = useAll ? "kind=deposits&all=1" : "kind=deposits&own=1";
+                fetch(buildApiUrl(`/api/admin/export?${query}`), { headers: { Authorization: `Bearer ${token}` } })
                   .then(r => r.blob())
                   .then(blob => {
                     const url = URL.createObjectURL(blob);
@@ -188,6 +203,12 @@ export default function AdminDepositsPage() {
               className="text-xs px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600"
             >
               Export CSV
+            </button>
+            <button
+              onClick={() => setShowAllOperations(s => !s)}
+              className="text-xs px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600"
+            >
+              {showAllOperations ? 'Cacher toutes les opérations' : 'Afficher toutes les opérations'}
             </button>
           </div>
 

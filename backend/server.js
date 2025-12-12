@@ -12,6 +12,63 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 
+// Limit deposit/withdraw hours (server local time)
+const WINDOW_START_MINUTES = 10 * 60;       // 10h00
+const WINDOW_END_MINUTES = 23 * 60 + 45;    // 23h45
+function isWithinCashWindow() {
+  const now = new Date();
+  const minutes = now.getHours() * 60 + now.getMinutes();
+  return minutes >= WINDOW_START_MINUTES && minutes <= WINDOW_END_MINUTES;
+}
+function windowClosedMessage(kind = "opération") {
+  return `${kind} autorisée entre 10h00 et 23h45 (heure serveur).`;
+}
+
+function randomPromoCode(length = 10) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
+}
+
+function promoRoleGuard(req, res, next) {
+  if (
+    !req.user ||
+    (req.user.role !== "admin" && req.user.role !== "superadmin") ||
+    !req.user.promoRoleEnabled
+  ) {
+    return res
+      .status(403)
+      .json({ message: "Accès refusé : rôle promo désactivé pour ce compte admin." });
+  }
+  next();
+}
+
+async function ensurePromoRoleKey() {
+  await pool.execute(
+    `
+    CREATE TABLE IF NOT EXISTS promo_role_keys (
+      id INT PRIMARY KEY,
+      secret_hash VARCHAR(255) NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `
+  );
+  const defaultPassword = process.env.PROMO_ROLE_PASSWORD || "PromoRole123!";
+  const [rows] = await pool.execute("SELECT secret_hash FROM promo_role_keys WHERE id = 1");
+  if (!rows || rows.length === 0) {
+    const bcrypt = require("bcryptjs");
+    const hash = await bcrypt.hash(defaultPassword, 10);
+    await pool.execute(
+      "INSERT INTO promo_role_keys (id, secret_hash) VALUES (1, ?) ON DUPLICATE KEY UPDATE secret_hash = VALUES(secret_hash)",
+      [hash]
+    );
+    console.log("Inserted default promo role password hash.");
+  }
+}
+
 // Simple in-memory SSE clients list: { userId, res }
 const sseClients = [];
 
@@ -32,17 +89,12 @@ function sendSseToUser(userId, payload) {
   }
 }
 
-const corsOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-app.use(
-  cors({
-    origin: corsOrigins,
-    credentials: true,
-  })
-);
+// CORS : permettre toutes origines (simplifie les tests locaux)
+const corsOptions = {
+  origin: (origin, callback) => callback(null, true),
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Dossier pour les avatars
@@ -209,9 +261,10 @@ app.post("/api/user/upgrade-vip", authMiddleware, async (req, res) => {
 
     const newBalance = row.balance_cents - VIP_COST_CENTS;
 
-    // 1) Mettre à jour user : solde -80 MAD + VIP
+    // 1) Mettre à jour user : solde -80 MAD + VIP avec expiration 90 jours
+    const vipExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
     await pool.execute(
-      "UPDATE users SET balance_cents = ?, vip_level = 'VIP' WHERE id = ?",
+      "UPDATE users SET balance_cents = ?, vip_level = 'VIP', vip_expires_at = DATE_ADD(NOW(), INTERVAL 90 DAY) WHERE id = ?",
       [newBalance, userId]
     );
 
@@ -222,9 +275,10 @@ app.post("/api/user/upgrade-vip", authMiddleware, async (req, res) => {
     );
 
     return res.json({
-      message: "Félicitations, tu es maintenant VIP !",
+      message: "Félicitations, tu es maintenant VIP ! (valable 90 jours)",
       new_balance_cents: newBalance,
       vipLevel: "VIP",
+      vip_expires_at: vipExpiresAt.toISOString(),
     });
   } catch (err) {
     console.error(err);
@@ -237,7 +291,7 @@ app.post("/api/user/upgrade-vip", authMiddleware, async (req, res) => {
 
 // Middleware admin
 function adminMiddleware(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
+  if (!req.user || (req.user.role !== "admin" && req.user.role !== "superadmin")) {
     return res
       .status(403)
       .json({ message: "Accès réservé à l'administrateur." });
@@ -326,6 +380,7 @@ app.post("/api/auth/register", async (req, res) => {
       email,
       vipLevel: "FREE",
       role,
+      promoRoleEnabled: 0,
       balanceCents: 0,
       inviteCode: newInviteCode,
       invitedByUserId: inviterUserId,
@@ -362,6 +417,22 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const userRow = rows[0];
+    // Expire VIP if past expiration date
+    if (userRow.vip_level === "VIP" && userRow.vip_expires_at) {
+      const exp = new Date(userRow.vip_expires_at);
+      if (!isNaN(exp.getTime()) && exp.getTime() <= Date.now()) {
+        try {
+          await pool.execute(
+            "UPDATE users SET vip_level = 'FREE', vip_expires_at = NULL WHERE id = ?",
+            [userRow.id]
+          );
+          userRow.vip_level = "FREE";
+          userRow.vip_expires_at = null;
+        } catch (e) {
+          console.error("Could not expire VIP during login for user", userRow.id, e);
+        }
+      }
+    }
 
     // 2) Vérifier le mot de passe
     const ok = await bcrypt.compare(password, userRow.password_hash);
@@ -384,7 +455,9 @@ app.post("/api/auth/login", async (req, res) => {
       fullName: userRow.full_name,
       email: userRow.email,
       vipLevel: userRow.vip_level,
+      vipExpiresAt: userRow.vip_expires_at,
       role: userRow.role,
+      promoRoleEnabled: userRow.promo_role_enabled || 0,
       balanceCents: userRow.balance_cents,
       inviteCode,
       invitedByUserId: userRow.invited_by_user_id || null,
@@ -422,13 +495,31 @@ async function authMiddleware(req, res, next) {
     }
 
     const row = rows[0];
+    // Expire VIP if past expiration date
+    if (row.vip_level === "VIP" && row.vip_expires_at) {
+      const exp = new Date(row.vip_expires_at);
+      if (!isNaN(exp.getTime()) && exp.getTime() <= Date.now()) {
+        try {
+          await pool.execute(
+            "UPDATE users SET vip_level = 'FREE', vip_expires_at = NULL WHERE id = ?",
+            [row.id]
+          );
+          row.vip_level = "FREE";
+          row.vip_expires_at = null;
+        } catch (e) {
+          console.error("Could not expire VIP for user", row.id, e);
+        }
+      }
+    }
     const inviteCode = await ensureInviteCode(row.id, row.invite_code);
     req.user = {
       id: row.id,
       fullName: row.full_name,
       email: row.email,
       vipLevel: row.vip_level,
+      vipExpiresAt: row.vip_expires_at,
       role: row.role,
+      promoRoleEnabled: row.promo_role_enabled || 0,
       balanceCents: row.balance_cents,
       inviteCode,
       invitedByUserId: row.invited_by_user_id || null,
@@ -456,7 +547,9 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
       fullName: req.user.fullName || req.user.full_name,
       email: req.user.email,
       vipLevel: req.user.vipLevel || req.user.vip_level,
+      vipExpiresAt: req.user.vipExpiresAt || null,
       role: req.user.role,
+      promoRoleEnabled: req.user.promoRoleEnabled || 0,
       balanceCents: typeof req.user.balanceCents !== 'undefined' ? req.user.balanceCents : req.user.balance_cents,
       inviteCode: req.user.inviteCode,
       invitedByUserId: req.user.invitedByUserId || null,
@@ -644,6 +737,10 @@ app.post("/api/wallet/deposit", authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const { amount, full_name } = req.body;
 
+    if (!isWithinCashWindow()) {
+      return res.status(403).json({ message: windowClosedMessage("Dépôt") });
+    }
+
     if (!amount || typeof amount !== "number" || amount <= 0) {
       return res
         .status(400)
@@ -693,6 +790,10 @@ app.post("/api/wallet/withdraw", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const { amount } = req.body;
+
+    if (!isWithinCashWindow()) {
+      return res.status(403).json({ message: windowClosedMessage("Retrait") });
+    }
 
     if (!amount || typeof amount !== "number") {
       return res
@@ -1076,26 +1177,53 @@ app.get(
   adminMiddleware,
   async (req, res) => {
     try {
-      const [rows] = await pool.execute(
-        `SELECT
-          w.id,
-          w.user_id AS userId,
-          w.amount_cents AS amountCents,
-          w.status,
-          w.type,
-          w.created_at AS createdAt,
-          u.email AS userEmail,
-          u.full_name AS fullName,
-          u.vip_level AS vipLevel,
-          u.balance_cents AS balanceCents,
-          b.bank_name AS bankName,
-          b.iban AS iban,
-          b.holder_name AS holderName
-         FROM withdrawals w
-         JOIN users u ON w.user_id = u.id
-         LEFT JOIN bank_accounts b ON b.user_id = u.id
-         ORDER BY w.created_at DESC`
-      );
+      const allowAll = req.user.role === 'superadmin' && req.query.all === '1';
+      let rows;
+      if (allowAll) {
+        [rows] = await pool.execute(
+          `SELECT
+            w.id,
+            w.user_id AS userId,
+            w.amount_cents AS amountCents,
+            w.status,
+            w.type,
+            w.created_at AS createdAt,
+            u.email AS userEmail,
+            u.full_name AS fullName,
+            u.vip_level AS vipLevel,
+            u.balance_cents AS balanceCents,
+            b.bank_name AS bankName,
+            b.iban AS iban,
+            b.holder_name AS holderName
+           FROM withdrawals w
+           JOIN users u ON w.user_id = u.id
+           LEFT JOIN bank_accounts b ON b.user_id = u.id
+           ORDER BY w.created_at DESC`
+        );
+      } else {
+        [rows] = await pool.execute(
+          `SELECT
+            w.id,
+            w.user_id AS userId,
+            w.amount_cents AS amountCents,
+            w.status,
+            w.type,
+            w.created_at AS createdAt,
+            u.email AS userEmail,
+            u.full_name AS fullName,
+            u.vip_level AS vipLevel,
+            u.balance_cents AS balanceCents,
+            b.bank_name AS bankName,
+            b.iban AS iban,
+            b.holder_name AS holderName
+           FROM withdrawals w
+           JOIN users u ON w.user_id = u.id
+           LEFT JOIN bank_accounts b ON b.user_id = u.id
+           WHERE w.status = 'PENDING' OR w.processed_by_admin_id = ?
+           ORDER BY w.created_at DESC`,
+          [req.user.id]
+        );
+      }
 
       return res.json(rows);
     } catch (err) {
@@ -1189,8 +1317,8 @@ app.post(
 
         // Mettre à jour le statut en APPROVED
         await conn.execute(
-          "UPDATE withdrawals SET status = 'APPROVED' WHERE id = ?",
-          [id]
+          "UPDATE withdrawals SET status = 'APPROVED', processed_by_admin_id = ? WHERE id = ?",
+          [req.user.id, id]
         );
 
         await conn.commit();
@@ -1293,7 +1421,7 @@ app.post(
         );
 
         // Mark the withdrawal as REJECTED so it stays in the history
-        await conn.execute("UPDATE withdrawals SET status = 'REJECTED' WHERE id = ?", [id]);
+        await conn.execute("UPDATE withdrawals SET status = 'REJECTED', processed_by_admin_id = ? WHERE id = ?", [req.user.id, id]);
 
         await conn.commit();
       } catch (e) {
@@ -1353,28 +1481,64 @@ app.get(
   adminMiddleware,
   async (req, res) => {
     try {
-      const [rows] = await pool.execute(
-        `SELECT
-          d.id,
-          d.user_id AS userId,
-          d.amount_cents AS amountCents,
-          d.full_name AS depositorFullName,
-          d.payer_rib AS payerRib,
-          d.screenshot_path AS screenshotPath,
-          dm.motif AS methodMotif,
-          d.status,
-          d.created_at AS createdAt,
-          u.email AS userEmail,
-          u.full_name AS fullName,
-          b.bank_name AS bankName,
-          b.iban AS iban,
-          b.holder_name AS holderName
-         FROM deposits d
-         JOIN users u ON d.user_id = u.id
-         LEFT JOIN bank_accounts b ON b.user_id = u.id
-         LEFT JOIN deposit_methods dm ON dm.id = d.method_id
-         ORDER BY d.created_at DESC`
-      );
+      const allowAll = req.user.role === 'superadmin' && req.query.all === '1';
+      let rows;
+      if (allowAll) {
+        [rows] = await pool.execute(
+          `SELECT
+            d.id,
+            d.user_id AS userId,
+            d.amount_cents AS amountCents,
+            d.full_name AS depositorFullName,
+            d.payer_rib AS payerRib,
+            d.screenshot_path AS screenshotPath,
+            d.method_id AS methodId,
+            d.processed_by_admin_id AS processedByAdminId,
+            dm.motif AS methodMotif,
+            d.status,
+            d.created_at AS createdAt,
+            u.email AS userEmail,
+            u.full_name AS fullName,
+            b.bank_name AS bankName,
+            b.iban AS iban,
+            b.holder_name AS holderName
+           FROM deposits d
+           JOIN users u ON d.user_id = u.id
+           LEFT JOIN bank_accounts b ON b.user_id = u.id
+           LEFT JOIN deposit_methods dm ON dm.id = d.method_id
+           ORDER BY d.created_at DESC`
+        );
+      } else {
+        [rows] = await pool.execute(
+          `SELECT
+            d.id,
+            d.user_id AS userId,
+            d.amount_cents AS amountCents,
+            d.full_name AS depositorFullName,
+            d.payer_rib AS payerRib,
+            d.screenshot_path AS screenshotPath,
+            d.method_id AS methodId,
+            d.processed_by_admin_id AS processedByAdminId,
+            dm.motif AS methodMotif,
+            d.status,
+            d.created_at AS createdAt,
+            u.email AS userEmail,
+            u.full_name AS fullName,
+            b.bank_name AS bankName,
+            b.iban AS iban,
+            b.holder_name AS holderName
+           FROM deposits d
+           JOIN users u ON d.user_id = u.id
+           LEFT JOIN bank_accounts b ON b.user_id = u.id
+           LEFT JOIN deposit_methods dm ON dm.id = d.method_id
+           WHERE d.processed_by_admin_id = ?
+             OR d.method_id IN (
+               SELECT account_id FROM admin_managed_accounts WHERE admin_id = ? AND account_type = 'deposit_method'
+             )
+           ORDER BY d.created_at DESC`,
+          [req.user.id, req.user.id]
+        );
+      }
 
       return res.json(rows);
     } catch (err) {
@@ -1418,7 +1582,7 @@ app.post(
         await conn.beginTransaction();
 
         // Mettre à jour le statut
-        await conn.execute("UPDATE deposits SET status = 'CONFIRMED' WHERE id = ?", [id]);
+        await conn.execute("UPDATE deposits SET status = 'CONFIRMED', processed_by_admin_id = ? WHERE id = ?", [req.user.id, id]);
 
         // Créditer le solde de l'utilisateur
         await conn.execute(
@@ -1518,7 +1682,7 @@ app.post(
         return res.status(400).json({ message: "Ce dépôt n'est plus en attente." });
       }
 
-      await pool.execute("UPDATE deposits SET status = 'REJECTED' WHERE id = ?", [id]);
+      await pool.execute("UPDATE deposits SET status = 'REJECTED', processed_by_admin_id = ? WHERE id = ?", [req.user.id, id]);
 
       // Retourner le dépôt rejeté avec details
       try {
@@ -1571,53 +1735,108 @@ app.get(
   async (req, res) => {
     try {
       const kind = (req.query.kind || "all").toLowerCase();
+      const allowAll = req.user.role === 'superadmin' && req.query.all === '1';
+      const own = !allowAll; // force own unless superadmin explicitly requests all=1
 
       let rows = [];
       if (kind === "withdrawals" || kind === "all") {
-        const [wrows] = await pool.execute(
-          `SELECT
-            'WITHDRAW' AS op_type,
-            w.id,
-            w.user_id AS userId,
-            u.email AS userEmail,
-            u.full_name AS fullName,
-            w.amount_cents AS amountCents,
-            w.status,
-            w.type,
-            w.created_at AS createdAt,
-            b.bank_name AS bankName,
-            b.iban AS iban,
-            b.holder_name AS holderName
-           FROM withdrawals w
-           JOIN users u ON w.user_id = u.id
-           LEFT JOIN bank_accounts b ON b.user_id = u.id`
-        );
+        let wrows;
+        if (own) {
+          [wrows] = await pool.execute(
+            `SELECT
+              'WITHDRAW' AS op_type,
+              w.id,
+              w.user_id AS userId,
+              u.email AS userEmail,
+              u.full_name AS fullName,
+              w.amount_cents AS amountCents,
+              w.status,
+              w.type,
+              w.created_at AS createdAt,
+              b.bank_name AS bankName,
+              b.iban AS iban,
+              b.holder_name AS holderName
+             FROM withdrawals w
+             JOIN users u ON w.user_id = u.id
+             LEFT JOIN bank_accounts b ON b.user_id = u.id
+             WHERE w.status = 'PENDING' OR w.processed_by_admin_id = ?`,
+            [req.user.id]
+          );
+        } else {
+          [wrows] = await pool.execute(
+            `SELECT
+              'WITHDRAW' AS op_type,
+              w.id,
+              w.user_id AS userId,
+              u.email AS userEmail,
+              u.full_name AS fullName,
+              w.amount_cents AS amountCents,
+              w.status,
+              w.type,
+              w.created_at AS createdAt,
+              b.bank_name AS bankName,
+              b.iban AS iban,
+              b.holder_name AS holderName
+             FROM withdrawals w
+             JOIN users u ON w.user_id = u.id
+             LEFT JOIN bank_accounts b ON b.user_id = u.id`
+          );
+        }
         rows = rows.concat(wrows.map(r => ({ kind: 'withdrawal', ...r })));
       }
 
       if (kind === "deposits" || kind === "all") {
-        const [drows] = await pool.execute(
-          `SELECT
-            'DEPOSIT' AS op_type,
-            d.id,
-            d.user_id AS userId,
-            u.email AS userEmail,
-            u.full_name AS fullName,
-            d.full_name AS depositorName,
-            d.payer_rib AS depositorRib,
-            d.screenshot_path AS screenshotPath,
-            dm.motif AS methodMotif,
-            d.amount_cents AS amountCents,
-            d.status,
-            'DEPOSIT' AS type,
-            d.created_at AS createdAt,
-            b.bank_name AS bankName,
-            b.iban AS iban,
-            b.holder_name AS holderName
-           FROM deposits d
-           JOIN users u ON d.user_id = u.id
-           LEFT JOIN bank_accounts b ON b.user_id = u.id
-           LEFT JOIN deposit_methods dm ON dm.id = d.method_id`);
+        let drows;
+        if (own) {
+          [drows] = await pool.execute(
+            `SELECT
+              'DEPOSIT' AS op_type,
+              d.id,
+              d.user_id AS userId,
+              u.email AS userEmail,
+              u.full_name AS fullName,
+              d.full_name AS depositorName,
+              d.payer_rib AS depositorRib,
+              d.screenshot_path AS screenshotPath,
+              dm.motif AS methodMotif,
+              d.amount_cents AS amountCents,
+              d.status,
+              'DEPOSIT' AS type,
+              d.created_at AS createdAt,
+              b.bank_name AS bankName,
+              b.iban AS iban,
+              b.holder_name AS holderName
+             FROM deposits d
+             JOIN users u ON d.user_id = u.id
+             LEFT JOIN bank_accounts b ON b.user_id = u.id
+             LEFT JOIN deposit_methods dm ON dm.id = d.method_id
+             WHERE d.status = 'PENDING' OR d.processed_by_admin_id = ?`,
+            [req.user.id]
+          );
+        } else {
+          [drows] = await pool.execute(
+            `SELECT
+              'DEPOSIT' AS op_type,
+              d.id,
+              d.user_id AS userId,
+              u.email AS userEmail,
+              u.full_name AS fullName,
+              d.full_name AS depositorName,
+              d.payer_rib AS depositorRib,
+              d.screenshot_path AS screenshotPath,
+              dm.motif AS methodMotif,
+              d.amount_cents AS amountCents,
+              d.status,
+              'DEPOSIT' AS type,
+              d.created_at AS createdAt,
+              b.bank_name AS bankName,
+              b.iban AS iban,
+              b.holder_name AS holderName
+             FROM deposits d
+             JOIN users u ON d.user_id = u.id
+             LEFT JOIN bank_accounts b ON b.user_id = u.id
+             LEFT JOIN deposit_methods dm ON dm.id = d.method_id`);
+        }
         rows = rows.concat(drows.map(r => ({ kind: 'deposit', ...r })));
       }
 
@@ -1701,22 +1920,674 @@ app.get(
   }
 );
 
+// 👑 ADMIN : synthèse financière (solde utilisateurs + dépôts confirmés - retraits du jour avec -10%)
+app.get(
+  "/api/admin/finance-summary",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const [balanceRows] = await pool.execute(
+        "SELECT COALESCE(SUM(balance_cents), 0) AS totalBalanceCents FROM users"
+      );
+      const totalBalanceCents =
+        (balanceRows && balanceRows[0] && Number(balanceRows[0].totalBalanceCents)) || 0;
+
+      const [depositRows] = await pool.execute(
+        `SELECT
+           DATE(created_at) AS depositDate,
+           COALESCE(SUM(amount_cents), 0) AS totalCents
+         FROM deposits
+         WHERE status IN ('CONFIRMED', 'APPROVED')
+         GROUP BY DATE(created_at)
+         ORDER BY depositDate ASC`
+      );
+      
+      let runningTotal = 0;
+      const depositsByDay = (depositRows || []).map(row => {
+          runningTotal += Number(row.totalCents);
+          return {
+              ...row,
+              runningTotalCents: runningTotal,
+          };
+      }).reverse();
+
+      const totalDepositsCents = runningTotal;
+
+      const [todayDepositRows] = await pool.execute(
+        "SELECT COALESCE(SUM(amount_cents), 0) AS totalDepositsTodayCents FROM deposits WHERE status IN ('CONFIRMED','APPROVED') AND DATE(created_at) = CURDATE()"
+      );
+      const totalDepositsTodayCents =
+        (todayDepositRows && todayDepositRows[0] && Number(todayDepositRows[0].totalDepositsTodayCents)) || 0;
+
+      const [withdrawRows] = await pool.execute(
+        `SELECT COALESCE(SUM(amount_cents), 0) AS totalWithdrawalsApprovedTodayCents
+           FROM withdrawals
+          WHERE type = 'WITHDRAW'
+            AND status = 'APPROVED'
+            AND DATE(created_at) = CURDATE()`
+      );
+      const totalWithdrawalsApprovedTodayCents =
+        (withdrawRows &&
+          withdrawRows[0] &&
+          Number(withdrawRows[0].totalWithdrawalsApprovedTodayCents)) ||
+        0;
+
+      const withdrawalAfterFeeCents = Math.floor(totalWithdrawalsApprovedTodayCents * 0.9); // -10%
+      const netPositionCents =
+        totalBalanceCents + totalDepositsCents - withdrawalAfterFeeCents;
+
+      return res.json({
+        totalBalanceCents,
+        totalDepositsCents,
+        depositsByDay,
+        totalDepositsTodayCents,
+        totalWithdrawalsApprovedTodayCents,
+        withdrawalAfterFeeCents,
+        feeRate: 0.1,
+        netPositionCents,
+      });
+    } catch (err) {
+      console.error("Error in /api/admin/finance-summary:", err);
+      return res
+        .status(500)
+        .json({ message: "Erreur serveur (synthèse financière)." });
+    }
+  }
+);
+
+// 👑 ADMIN : export CSV des opérations du jour (dépôts confirmés/approvés + retraits approuvés)
+app.get(
+  "/api/admin/finance-export",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      // force own unless superadmin explicitly requests all=1
+      const allowAll = req.user.role === 'superadmin' && req.query.all === '1';
+      const own = !allowAll;
+      const [depRows] = await pool.execute(
+        `SELECT
+            'DEPOSIT' AS op_type,
+            d.id,
+            d.user_id AS userId,
+            u.email AS userEmail,
+            d.amount_cents AS amountCents,
+            d.status,
+            d.created_at AS createdAt
+         FROM deposits d
+         JOIN users u ON u.id = d.user_id
+        WHERE d.status IN ('CONFIRMED','APPROVED')
+          AND DATE(d.created_at) = CURDATE()`
+      );
+      // If own filter requested, re-run deposits selecting only those pending/processed by this admin
+      let finalDepRows = depRows;
+      if (own) {
+        try {
+          const [ownDepRows] = await pool.execute(
+            `SELECT
+             'DEPOSIT' AS op_type,
+             d.id,
+             d.user_id AS userId,
+             u.email AS userEmail,
+             d.amount_cents AS amountCents,
+             d.status,
+             d.created_at AS createdAt
+           FROM deposits d
+           JOIN users u ON u.id = d.user_id
+           WHERE (d.status = 'PENDING' OR d.processed_by_admin_id = ?)
+             AND DATE(d.created_at) = CURDATE()`,
+            [req.user.id]
+          );
+          finalDepRows = ownDepRows || [];
+        } catch (e) {
+          finalDepRows = [];
+        }
+      }
+
+      let finalWitRows = [];
+      if (own) {
+        try {
+          const [ownWitRows] = await pool.execute(
+            `SELECT
+             'WITHDRAW' AS op_type,
+             w.id,
+             w.user_id AS userId,
+             u.email AS userEmail,
+             w.amount_cents AS amountCents,
+             w.status,
+             w.created_at AS createdAt
+           FROM withdrawals w
+           JOIN users u ON u.id = w.user_id
+           WHERE (w.status = 'PENDING' OR w.processed_by_admin_id = ?)
+             AND DATE(w.created_at) = CURDATE()`,
+            [req.user.id]
+          );
+          finalWitRows = ownWitRows || [];
+        } catch (e) {
+          finalWitRows = [];
+        }
+      } else {
+        const [witRows] = await pool.execute(
+          `SELECT
+              'WITHDRAW' AS op_type,
+              w.id,
+              w.user_id AS userId,
+              u.email AS userEmail,
+              w.amount_cents AS amountCents,
+              w.status,
+              w.created_at AS createdAt
+           FROM withdrawals w
+           JOIN users u ON u.id = w.user_id
+          WHERE w.type = 'WITHDRAW'
+            AND w.status = 'APPROVED'
+            AND DATE(w.created_at) = CURDATE()`
+        );
+        finalWitRows = witRows;
+      }
+      const rows = [...finalDepRows, ...finalWitRows];
+      const headers = ["opType", "id", "userId", "userEmail", "amountCents", "amountMad", "status", "createdAt"];
+      const escape = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+      const csv = [headers]
+        .concat(
+          rows.map((r) => [
+            r.op_type,
+            r.id,
+            r.userId,
+            r.userEmail || "",
+            r.amountCents ?? "",
+            r.amountCents != null ? (r.amountCents / 100).toFixed(2) : "",
+            r.status || "",
+            r.createdAt ? new Date(r.createdAt).toISOString() : "",
+          ])
+        )
+        .map((r) => r.map(escape).join(","))
+        .join("\n");
+
+      const filename = `finance-${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(csv);
+    } catch (err) {
+      console.error("Error in /api/admin/finance-export:", err);
+      return res.status(500).json({ message: "Erreur serveur (export finance)." });
+    }
+  }
+);
+
+// Redeem promo code (user) : one time per code, valid 24h after creation
+app.post("/api/promo/redeem", authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.body || {};
+    if (!code || typeof code !== "string" || code.trim().length < 3) {
+      return res.status(400).json({ message: "Code promo invalide." });
+    }
+    const normalized = code.trim().toUpperCase();
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
+        "SELECT id, amount_cents, used_by_user_id, created_at FROM promo_codes WHERE UPPER(code) = ? FOR UPDATE",
+        [normalized]
+      );
+      if (!rows || rows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Code promo introuvable." });
+      }
+      const promo = rows[0];
+      const createdAt = new Date(promo.created_at || promo.createdAt || Date.now());
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      if (Date.now() - createdAt.getTime() > oneDayMs) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Code expiré (valide 24h après création)." });
+      }
+
+      // Vérifier si l'utilisateur a déjà utilisé ce code
+      const [usedRows] = await conn.execute(
+        "SELECT id FROM promo_code_uses WHERE promo_code_id = ? AND user_id = ? LIMIT 1",
+        [promo.id, req.user.id]
+      );
+      if (usedRows && usedRows.length > 0) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Tu as déjà utilisé ce code." });
+      }
+
+      // Montant aléatoire 1.00 - 2.00 MAD (100-200 cents)
+      const awardedCents = 100 + Math.floor(Math.random() * 101);
+
+      // Enregistrer l'utilisation pour ce user
+      await conn.execute(
+        "INSERT INTO promo_code_uses (promo_code_id, user_id, amount_cents) VALUES (?, ?, ?)",
+        [promo.id, req.user.id, awardedCents]
+      );
+      await conn.execute(
+        "UPDATE users SET balance_cents = balance_cents + ? WHERE id = ?",
+        [awardedCents, req.user.id]
+      );
+      await conn.commit();
+      return res.json({
+        message: "Code appliqué. Montant crédité.",
+        added_cents: awardedCents,
+      });
+    } catch (e) {
+      await conn.rollback().catch(() => {});
+      throw e;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error("Error redeeming promo code:", err);
+    return res.status(500).json({ message: "Erreur serveur (code promo)." });
+  }
+});
+
+// Helper GET to vérifier disponibilité de l'endpoint (debug)
+app.get("/api/promo/redeem", (req, res) => {
+  return res
+    .status(405)
+    .json({ message: "Utilise POST /api/promo/redeem avec { code: \"...\" }" });
+});
+
+// 👑 ADMIN : promo codes (génération / listing) — requiert admin + promo_role_enabled = 1
+app.get(
+  "/api/admin/promo-codes",
+  authMiddleware,
+  adminMiddleware,
+  promoRoleGuard,
+  async (req, res) => {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT id, code, amount_cents AS amountCents, created_at AS createdAt, used_by_user_id AS usedByUserId, used_at AS usedAt
+         FROM promo_codes
+         ORDER BY id DESC
+         LIMIT 100`
+      );
+      return res.json(rows || []);
+    } catch (err) {
+      console.error("Error fetching promo codes:", err);
+      return res.status(500).json({ message: "Erreur serveur (codes promo)." });
+    }
+  }
+);
+
+app.post(
+  "/api/admin/promo-codes",
+  authMiddleware,
+  adminMiddleware,
+  promoRoleGuard,
+  async (req, res) => {
+    try {
+      const count = Math.min(Math.max(parseInt(req.body?.count || 1, 10) || 1, 1), 20);
+      const generated = [];
+      for (let i = 0; i < count; i++) {
+        const code = randomPromoCode(10);
+        const amountCents = 100 + Math.floor(Math.random() * 100); // 100..199 (1.00 - 1.99 MAD)
+        try {
+          await pool.execute(
+            "INSERT INTO promo_codes (code, amount_cents, created_by_user_id) VALUES (?, ?, ?)",
+            [code, amountCents, req.user.id]
+          );
+          generated.push({ code, amountCents });
+        } catch (e) {
+          // collision improbable : on ignore et continue
+          i--;
+          continue;
+        }
+      }
+      return res.json({ message: "Codes générés.", codes: generated });
+    } catch (err) {
+      console.error("Error creating promo code:", err);
+      return res.status(500).json({ message: "Erreur serveur (création code promo)." });
+    }
+  }
+);
+
+// 👑 ADMIN : activer/désactiver le rôle promo pour un compte admin
+app.post(
+  "/api/admin/users/:id/promo-role",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      await ensurePromoRoleKey();
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ message: "ID invalide." });
+      }
+      const password = req.body?.password || "";
+      if (!password || password.length < 3) {
+        return res.status(400).json({ message: "Mot de passe requis." });
+      }
+      const [rows] = await pool.execute("SELECT secret_hash FROM promo_role_keys WHERE id = 1 LIMIT 1");
+      if (!rows || rows.length === 0) {
+        return res.status(500).json({ message: "Secret promo non configuré." });
+      }
+      const bcrypt = require("bcryptjs");
+      const ok = await bcrypt.compare(password, rows[0].secret_hash);
+      if (!ok) {
+        return res.status(403).json({ message: "Mot de passe incorrect." });
+      }
+      const enabled = req.body?.enabled ? 1 : 0;
+      await pool.execute(
+        "UPDATE users SET promo_role_enabled = ? WHERE id = ? AND role = 'admin'",
+        [enabled, id]
+      );
+      return res.json({ message: "Rôle promo mis à jour.", promoRoleEnabled: enabled });
+    } catch (err) {
+      console.error("Error toggling promo role:", err);
+      return res.status(500).json({ message: "Erreur serveur (rôle promo)." });
+    }
+  }
+);
+
+// 👑 ADMIN : gestion sécurisée des rôles d'un utilisateur (promotion / démotion)
+// Accessible uniquement aux superadmins (exige explicitement role === 'superadmin')
+app.post(
+  "/api/admin/users/:id/role",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      // Only superadmin may change roles
+      if (!req.user || req.user.role !== 'superadmin') {
+        return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+      }
+
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ message: 'ID invalide.' });
+      }
+
+      const newRole = (req.body && String(req.body.role || '').trim()).toLowerCase();
+      const allowed = ['user', 'admin', 'superadmin'];
+      if (!allowed.includes(newRole)) {
+        return res.status(400).json({ message: 'Rôle invalide. Valeurs autorisées: user, admin, superadmin.' });
+      }
+
+      // Protect the last remaining superadmin from being demoted
+      if (newRole !== 'superadmin') {
+        const [existingSuper] = await pool.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = 'superadmin'");
+        const superCount = (existingSuper && existingSuper[0] && existingSuper[0].cnt) || 0;
+        // if target is currently superadmin and would leave zero superadmins, block
+        const [targetRow] = await pool.execute('SELECT role FROM users WHERE id = ? LIMIT 1', [id]);
+        const targetRole = targetRow && targetRow[0] ? targetRow[0].role : null;
+        if (targetRole === 'superadmin' && superCount <= 1) {
+          return res.status(400).json({ message: 'Impossible de rétrograder le dernier superadmin.' });
+        }
+      }
+
+      // Audit table for role changes
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS role_change_logs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          target_user_id INT NOT NULL,
+          changed_by_user_id INT NOT NULL,
+          old_role VARCHAR(50),
+          new_role VARCHAR(50),
+          reason VARCHAR(255) DEFAULT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      // Fetch current role
+      const [rows] = await pool.execute('SELECT id, role FROM users WHERE id = ? LIMIT 1', [id]);
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Utilisateur introuvable.' });
+      }
+      const oldRole = rows[0].role;
+
+      // Update role
+      await pool.execute('UPDATE users SET role = ? WHERE id = ?', [newRole, id]);
+
+      // Insert audit log
+      const reason = req.body && req.body.reason ? String(req.body.reason).slice(0, 255) : null;
+      await pool.execute('INSERT INTO role_change_logs (target_user_id, changed_by_user_id, old_role, new_role, reason) VALUES (?, ?, ?, ?, ?)', [id, req.user.id, oldRole, newRole, reason]);
+
+      // Return updated user row (sanitized)
+      const [updatedRows] = await pool.execute('SELECT id, full_name AS fullName, email, role, vip_level AS vipLevel, promo_role_enabled AS promoRoleEnabled FROM users WHERE id = ? LIMIT 1', [id]);
+      return res.json({ message: 'Rôle mis à jour.', user: updatedRows[0] || null });
+    } catch (err) {
+      console.error('Error updating user role:', err);
+      return res.status(500).json({ message: 'Erreur serveur lors de la mise à jour du rôle.' });
+    }
+  }
+);
+
+// 👑 SUPERADMIN : liste de tous les utilisateurs (pour gérer les rôles/liens)
+app.get(
+  "/api/admin/all-users",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+      }
+      const [rows] = await pool.execute(
+        'SELECT id, full_name AS fullName, email, role, vip_level AS vipLevel, promo_role_enabled AS promoRoleEnabled, created_at AS createdAt FROM users ORDER BY id DESC LIMIT 500'
+      );
+      return res.json(rows || []);
+    } catch (err) {
+      console.error('Error in GET /api/admin/all-users:', err);
+      return res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  }
+);
+
+  // 👑 SUPERADMIN : gérer les liaisons admin <-> compte destinataire (deposit_method)
+  // Table admin_managed_accounts: admin_id, account_type, account_id
+  app.get(
+    "/api/admin/managed-accounts",
+    authMiddleware,
+    adminMiddleware,
+    async (req, res) => {
+      try {
+        if (!req.user || req.user.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+        }
+
+        await pool.execute(`
+          CREATE TABLE IF NOT EXISTS admin_managed_accounts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id INT NOT NULL,
+            account_type VARCHAR(100) NOT NULL,
+            account_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_admin_account (admin_id, account_type, account_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        const [rows] = await pool.execute(
+          `SELECT a.id, a.admin_id AS adminId, a.account_type AS accountType, a.account_id AS accountId, u.email AS adminEmail, a.created_at AS createdAt
+           FROM admin_managed_accounts a
+           LEFT JOIN users u ON u.id = a.admin_id
+           ORDER BY a.created_at DESC`
+        );
+        return res.json(rows || []);
+      } catch (err) {
+        console.error('Error in GET /api/admin/managed-accounts:', err);
+        return res.status(500).json({ message: 'Erreur serveur.' });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/managed-accounts",
+    authMiddleware,
+    adminMiddleware,
+    async (req, res) => {
+      try {
+        if (!req.user || req.user.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+        }
+
+        const adminId = parseInt(req.body && req.body.adminId, 10);
+        const accountType = String(req.body && req.body.accountType || '').trim();
+        const accountId = parseInt(req.body && req.body.accountId, 10);
+        if (!adminId || !accountType || Number.isNaN(accountId)) {
+          return res.status(400).json({ message: 'adminId, accountType et accountId sont requis.' });
+        }
+
+        await pool.execute(`
+          CREATE TABLE IF NOT EXISTS admin_managed_accounts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id INT NOT NULL,
+            account_type VARCHAR(100) NOT NULL,
+            account_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_admin_account (admin_id, account_type, account_id)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
+        // Only allow deposit_method mapping for now
+        if (accountType !== 'deposit_method') {
+          return res.status(400).json({ message: 'accountType non supporté (utilisez "deposit_method").' });
+        }
+
+        // ensure admin exists
+        const [urows] = await pool.execute('SELECT id FROM users WHERE id = ? LIMIT 1', [adminId]);
+        if (!urows || urows.length === 0) return res.status(404).json({ message: 'Admin introuvable.' });
+
+        // ensure deposit method exists
+        const [mrows] = await pool.execute('SELECT id FROM deposit_methods WHERE id = ? LIMIT 1', [accountId]);
+        if (!mrows || mrows.length === 0) return res.status(404).json({ message: 'Méthode de dépôt introuvable.' });
+
+        await pool.execute('INSERT INTO admin_managed_accounts (admin_id, account_type, account_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)', [adminId, accountType, accountId]);
+        return res.json({ message: 'Liaison créée.' });
+      } catch (err) {
+        console.error('Error in POST /api/admin/managed-accounts:', err);
+        return res.status(500).json({ message: 'Erreur serveur.' });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/admin/managed-accounts/:id",
+    authMiddleware,
+    adminMiddleware,
+    async (req, res) => {
+      try {
+        if (!req.user || req.user.role !== 'superadmin') {
+          return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+        }
+        const id = parseInt(req.params.id, 10);
+        if (Number.isNaN(id)) return res.status(400).json({ message: 'ID invalide.' });
+        await pool.execute('DELETE FROM admin_managed_accounts WHERE id = ? LIMIT 1', [id]);
+        return res.json({ message: 'Liaison supprimée.' });
+      } catch (err) {
+        console.error('Error in DELETE /api/admin/managed-accounts/:id:', err);
+        return res.status(500).json({ message: 'Erreur serveur.' });
+      }
+    }
+  );
+
+// Shorter alias for superadmin-only role changes (no adminMiddleware)
+app.post(
+  "/api/superadmin/users/:id/role",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      if (!req.user || req.user.role !== 'superadmin') {
+        return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+      }
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) return res.status(400).json({ message: 'ID invalide.' });
+      const newRole = (req.body && String(req.body.role || '').trim()).toLowerCase();
+      const allowed = ['user', 'admin', 'superadmin'];
+      if (!allowed.includes(newRole)) return res.status(400).json({ message: 'Rôle invalide.' });
+
+      // Protect last superadmin
+      if (newRole !== 'superadmin') {
+        const [existingSuper] = await pool.execute("SELECT COUNT(*) AS cnt FROM users WHERE role = 'superadmin'");
+        const superCount = (existingSuper && existingSuper[0] && existingSuper[0].cnt) || 0;
+        const [targetRow] = await pool.execute('SELECT role FROM users WHERE id = ? LIMIT 1', [id]);
+        const targetRole = targetRow && targetRow[0] ? targetRow[0].role : null;
+        if (targetRole === 'superadmin' && superCount <= 1) {
+          return res.status(400).json({ message: 'Impossible de rétrograder le dernier superadmin.' });
+        }
+      }
+
+      // update and audit
+      await pool.execute('UPDATE users SET role = ? WHERE id = ?', [newRole, id]);
+      const reason = req.body && req.body.reason ? String(req.body.reason).slice(0,255) : null;
+      await pool.execute('INSERT INTO role_change_logs (target_user_id, changed_by_user_id, old_role, new_role, reason) VALUES (?, ?, ?, ?, ?)', [id, req.user.id, null, newRole, reason]);
+      const [updatedRows] = await pool.execute('SELECT id, full_name AS fullName, email, role FROM users WHERE id = ? LIMIT 1', [id]);
+      return res.json({ message: 'Rôle mis à jour (superadmin alias).', user: updatedRows[0] || null });
+    } catch (err) {
+      console.error('Error in /api/superadmin/users/:id/role', err);
+      return res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  }
+);
+
 // --- Méthode de dépôt (compte destinataire + preuve) ---
 // Récupère les méthodes de dépôt actives (destinataire, banque, RIB…)
 app.get("/api/deposit-methods", authMiddleware, async (req, res) => {
   try {
-    const [rows] = await pool.execute(
-      `SELECT id, bank_name AS bankName, recipient_name AS recipientName, account_number AS accountNumber, rib, motif, instructions
-       FROM deposit_methods
-       WHERE is_active = 1
-       ORDER BY id ASC`
-    );
+    // Si superadmin demande tous les comptes (incluant inactifs)
+    const showAll = req.user.role === 'superadmin' && req.query.all === '1';
+    
+    const query = showAll
+      ? `SELECT id, bank_name AS bankName, recipient_name AS recipientName, account_number AS accountNumber, rib, motif, instructions, is_active AS isActive
+         FROM deposit_methods
+         ORDER BY id ASC`
+      : `SELECT id, bank_name AS bankName, recipient_name AS recipientName, account_number AS accountNumber, rib, motif, instructions
+         FROM deposit_methods
+         WHERE is_active = 1
+         ORDER BY id ASC`;
+    
+    const [rows] = await pool.execute(query);
     return res.json(rows || []);
   } catch (err) {
     console.error("Error fetching deposit methods:", err);
     return res.status(500).json({ message: "Erreur serveur (méthodes de dépôt)." });
   }
 });
+
+// Toggle activation d'un compte destinataire (superadmin only)
+app.patch(
+  "/api/admin/deposit-methods/:id/toggle",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      if (req.user.role !== 'superadmin') {
+        return res.status(403).json({ message: 'Accès réservé au superadmin.' });
+      }
+
+      const methodId = parseInt(req.params.id, 10);
+      if (Number.isNaN(methodId)) {
+        return res.status(400).json({ message: 'ID invalide.' });
+      }
+
+      // Récupérer le statut actuel
+      const [rows] = await pool.execute(
+        'SELECT is_active FROM deposit_methods WHERE id = ?',
+        [methodId]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ message: 'Compte destinataire non trouvé.' });
+      }
+
+      const newStatus = rows[0].is_active === 1 ? 0 : 1;
+
+      await pool.execute(
+        'UPDATE deposit_methods SET is_active = ? WHERE id = ?',
+        [newStatus, methodId]
+      );
+
+      return res.json({ 
+        message: newStatus === 1 ? 'Compte activé.' : 'Compte désactivé.',
+        isActive: newStatus
+      });
+    } catch (err) {
+      console.error('Error toggling deposit method:', err);
+      return res.status(500).json({ message: 'Erreur serveur.' });
+    }
+  }
+);
 
 // Nouvelle route de dépôt avec upload de capture
 app.post(
@@ -1725,6 +2596,10 @@ app.post(
   depositUpload.single("screenshot"),
   async (req, res) => {
     try {
+      if (!isWithinCashWindow()) {
+        return res.status(403).json({ message: windowClosedMessage("Dépôt") });
+      }
+
       const { amount, depositorName, depositorRib, methodId } = req.body || {};
       const amountNumber = Number(amount);
       if (Number.isNaN(amountNumber) || amountNumber <= 0) {
@@ -1756,9 +2631,23 @@ app.post(
       const finalMethodId = methodRow ? methodRow.id : null;
       const proofPath = req.file ? `/uploads/${req.file.filename}` : null;
 
+      // Trouver l'admin responsable de ce compte destinataire (method_id)
+      let assignedAdminId = null;
+      if (finalMethodId) {
+        const [adminRows] = await pool.execute(
+          `SELECT admin_id FROM admin_managed_accounts 
+           WHERE account_type = 'deposit_method' AND account_id = ? 
+           LIMIT 1`,
+          [finalMethodId]
+        );
+        if (adminRows && adminRows.length > 0) {
+          assignedAdminId = adminRows[0].admin_id;
+        }
+      }
+
       await pool.execute(
-        `INSERT INTO deposits (user_id, amount_cents, status, full_name, payer_rib, screenshot_path, method_id)
-         VALUES (?, ?, 'PENDING', ?, ?, ?, ?)`,
+        `INSERT INTO deposits (user_id, amount_cents, status, full_name, payer_rib, screenshot_path, method_id, processed_by_admin_id)
+         VALUES (?, ?, 'PENDING', ?, ?, ?, ?, ?)`,
         [
           req.user.id,
           Math.round(amountNumber * 100),
@@ -1766,6 +2655,7 @@ app.post(
           depositorRib || null,
           proofPath,
           finalMethodId,
+          assignedAdminId,
         ]
       );
 

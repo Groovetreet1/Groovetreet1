@@ -123,7 +123,10 @@ export default function DepositPage() {
     <div className="min-h-screen bg-slate-900 text-white px-4 py-6">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold">Déposer des fonds</h1>
+          <div className="flex items-center gap-2">
+            <img src="/app-icon.png" alt="Windelevery" className="h-8 w-8 rounded-xl object-cover" />
+            <h1 className="text-xl font-semibold">Déposer des fonds</h1>
+          </div>
           <button
             onClick={() => navigate("/dashboard")}
             className="text-xs px-3 py-2 rounded-lg border border-slate-700 hover:bg-slate-800"

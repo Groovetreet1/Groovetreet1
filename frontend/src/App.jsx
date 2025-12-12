@@ -8,8 +8,10 @@ import WithdrawPage from "./pages/WithdrawPage.jsx";
 import AdminWithdrawalsPage from "./pages/AdminWithdrawalsPage.jsx";
 import AdminTasksPage from "./pages/AdminTasksPage.jsx";
 import AdminDepositsPage from "./pages/AdminDepositsPage.jsx";
+import AdminFinancePage from "./pages/AdminFinancePage.jsx";
 import ReferralsPage from "./pages/ReferralsPage.jsx";
 import DepositPage from "./pages/DepositPage.jsx";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 
 function App() {
   return (
@@ -42,6 +44,14 @@ function App() {
         <Route
           path="/admin/tasks"
           element={<AdminTasksPage />}
+        />
+        <Route
+          path="/admin/finance"
+          element={<AdminFinancePage />}
+        />
+        <Route
+          path="/superadmin"
+          element={<SuperAdminDashboard />}
         />
       </Routes>
     </BrowserRouter>

@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   vip_level VARCHAR(20) NOT NULL DEFAULT 'FREE',
+  vip_expires_at DATETIME NULL,
   role VARCHAR(20) NOT NULL DEFAULT 'user',
+  promo_role_enabled TINYINT(1) NOT NULL DEFAULT 0,
   balance_cents INT NOT NULL DEFAULT 0,
   invite_code VARCHAR(32) UNIQUE,
   invited_by_user_id INT NULL,
@@ -77,6 +79,38 @@ CREATE TABLE IF NOT EXISTS bank_accounts (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- promo_role_keys (mot de passe unique pour activer le rôle promo)
+CREATE TABLE IF NOT EXISTS promo_role_keys (
+  id INT PRIMARY KEY,
+  secret_hash VARCHAR(255) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- promo_codes
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(32) NOT NULL UNIQUE,
+  amount_cents INT NOT NULL,
+  created_by_user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  used_by_user_id INT NULL,
+  used_at TIMESTAMP NULL,
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (used_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- promo_code_uses : trace des utilisations par utilisateur (1 fois par user)
+CREATE TABLE IF NOT EXISTS promo_code_uses (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  promo_code_id INT NOT NULL,
+  user_id INT NOT NULL,
+  amount_cents INT NOT NULL DEFAULT 0,
+  used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY ux_code_user (promo_code_id, user_id),
+  FOREIGN KEY (promo_code_id) REFERENCES promo_codes(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- referrals: who invited whom
 CREATE TABLE IF NOT EXISTS referrals (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -106,3 +140,7 @@ VALUES
   ('Regarder vidéo promo 1', 'Regarde la vidéo pendant au moins 15 secondes.', 200, 15, 'FREE', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
   ('Regarder vidéo promo 2', 'Regarde la vidéo pendant au moins 15 secondes.', 500, 15, 'FREE', 'https://www.youtube.com/watch?v=sOCKUCvEHWM')
 ON DUPLICATE KEY UPDATE title = VALUES(title);
+
+ALTER TABLE deposits ADD COLUMN processed_by_admin_id INT NULL;
+ALTER TABLE withdrawals ADD COLUMN processed_by_admin_id INT NULL;
+

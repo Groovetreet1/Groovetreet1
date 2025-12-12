@@ -11,6 +11,7 @@ export default function WithdrawPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -114,9 +115,11 @@ export default function WithdrawPage() {
       <header className="w-full border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-indigo-600 flex items-center justify-center text-sm font-bold">
-              P
-            </div>
+            <img
+              src="/app-icon.png"
+              alt="Windelevery"
+              className="h-8 w-8 rounded-xl object-cover"
+            />
             <div>
               <div className="text-sm font-semibold tracking-tight">
                 Promo App
@@ -197,7 +200,7 @@ export default function WithdrawPage() {
           <button
             type="button"
             disabled={!selectedAmount || submitting}
-            onClick={handleConfirmWithdraw}
+            onClick={() => setShowConfirmPopup(true)}
             className={`px-5 py-2.5 rounded-xl text-sm font-semibold
               ${
                 !selectedAmount || submitting
@@ -213,6 +216,50 @@ export default function WithdrawPage() {
           </button>
         </div>
       </main>
+
+      {showConfirmPopup && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-20">
+          <div className="bg-slate-800 rounded-2xl p-6 max-w-sm w-full text-center">
+            <h3 className="text-lg font-semibold mb-2">
+              Confirmer le retrait
+            </h3>
+            <p className="text-sm text-slate-300 mb-1">
+              10% seront déduits du montant à retirer. (commission de
+              l'opération)
+            </p>
+            <p className="text-sm text-slate-300 mb-4">
+              Montant du retrait: {selectedAmount} MAD
+              <br />
+              Montant final que vous allez recevoir:{" "}
+              <span className="font-semibold text-emerald-300">
+                {(selectedAmount * 0.9).toFixed(2)} MAD
+              </span>
+              <br />
+              Votre solde après l'opération :{" "}
+              <span className="font-semibold text-orange-300">
+                {((user.balanceCents / 100) - selectedAmount).toFixed(2)} MAD
+              </span>
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowConfirmPopup(false)}
+                className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmPopup(false);
+                  handleConfirmWithdraw();
+                }}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-900 text-sm font-semibold"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

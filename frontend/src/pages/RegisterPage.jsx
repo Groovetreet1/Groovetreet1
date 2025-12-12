@@ -43,6 +43,13 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+        <div className="flex justify-center mb-3">
+          <img
+            src="/app-icon.png"
+            alt="Windelevery"
+            className="h-12 w-12 rounded-2xl object-cover shadow"
+          />
+        </div>
         <h1 className="text-2xl font-bold text-center mb-1 text-slate-900">
           Créer un compte
         </h1>

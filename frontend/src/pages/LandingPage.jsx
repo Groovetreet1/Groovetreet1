@@ -44,7 +44,7 @@ export default function LandingPage() {
       login: "دخول",
       signup: "تسجيل",
       heroTitleLine1: "تشوف الفيديو، تكمّل الخدمة،",
-      heroTitleLine2: "وتشدّ الفلوس فالدرهم.",
+      heroTitleLine2: "وتشدّ الفلوس بالدرهم.",
       heroText:
         "برومو آب كيعطيك خدمات صغار: كتشوف فيديوهات يوتيوب شوية، من بعد كتصادّق على الخدمة وكيطلع لك الرصيد فالحساب.",
       heroText2:
@@ -75,9 +75,11 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           {/* Logo + nom */}
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-indigo-500/30">
-              P
-            </div>
+            <img
+              src="/app-icon.png"
+              alt="Windelevery"
+              className="h-9 w-9 rounded-2xl object-cover shadow-lg shadow-indigo-500/30"
+            />
             <div className={language === "ar" ? "text-right" : ""}>
               <div className="text-sm font-semibold tracking-tight">
                 {t.appTitle}

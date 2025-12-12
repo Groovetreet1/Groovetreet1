@@ -1,6 +1,28 @@
 const mysql = require("mysql2/promise");
 const { buildPoolConfig } = require("./db");
 
+// Default tasks to seed when none exist
+const seedTasks = [
+  {
+    title: "Regarder vidéo promo 1",
+    description: "Regarde la vidéo pendant au moins 15 secondes.",
+    reward_cents: 200,
+    duration_seconds: 15,
+    min_vip_level: "FREE",
+    video_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    is_active: 1,
+  },
+  {
+    title: "Regarder vidéo promo 2",
+    description: "Regarde la vidéo pendant au moins 15 secondes.",
+    reward_cents: 500,
+    duration_seconds: 15,
+    min_vip_level: "FREE",
+    video_url: "https://www.youtube.com/watch?v=sOCKUCvEHWM",
+    is_active: 1,
+  },
+];
+
 async function run() {
   try {
     const baseConfig = buildPoolConfig();
@@ -66,6 +88,7 @@ async function run() {
         email VARCHAR(255) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
         vip_level VARCHAR(20) NOT NULL DEFAULT 'FREE',
+        vip_expires_at DATETIME NULL,
         role VARCHAR(20) NOT NULL DEFAULT 'user',
         balance_cents INT NOT NULL DEFAULT 0,
         invite_code VARCHAR(32) UNIQUE,
@@ -84,7 +107,9 @@ async function run() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) NOT NULL DEFAULT ''`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) NOT NULL UNIQUE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS vip_level VARCHAR(20) NOT NULL DEFAULT 'FREE'`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS vip_expires_at DATETIME NULL`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS promo_role_enabled TINYINT(1) NOT NULL DEFAULT 0`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS invite_code VARCHAR(32) UNIQUE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS invited_by_user_id INT NULL`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
@@ -161,6 +186,10 @@ async function run() {
       `ALTER TABLE deposits ADD COLUMN IF NOT EXISTS method_id INT NULL;`,
       "Ensured deposits.method_id column"
     );
+    await run(
+      `ALTER TABLE deposits ADD COLUMN IF NOT EXISTS processed_by_admin_id INT NULL;`,
+      "Ensured deposits.processed_by_admin_id column"
+    );
 
     // WITHDRAWALS
     await run(
@@ -171,6 +200,7 @@ async function run() {
         amount_cents INT NOT NULL,
         status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
         type VARCHAR(50) NOT NULL DEFAULT 'WITHDRAW',
+        processed_by_admin_id INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -180,6 +210,10 @@ async function run() {
     await run(
       `ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS type VARCHAR(50) NOT NULL DEFAULT 'WITHDRAW'`,
       "Ensured withdrawals.type column"
+    );
+    await run(
+      `ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS processed_by_admin_id INT NULL;`,
+      "Ensured withdrawals.processed_by_admin_id column"
     );
 
     // TASK COMPLETIONS
@@ -299,6 +333,57 @@ async function run() {
     await run(
       `ALTER TABLE deposit_methods ADD COLUMN IF NOT EXISTS motif VARCHAR(255);`,
       "Ensured deposit_methods.motif column"
+    );
+
+    // PROMO ROLE PASSWORD (unique secret)
+    await run(
+      `
+      CREATE TABLE IF NOT EXISTS promo_role_keys (
+        id INT PRIMARY KEY,
+        secret_hash VARCHAR(255) NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `,
+      "Ensured table promo_role_keys"
+    );
+
+    // PROMO CODES
+    await run(
+      `
+      CREATE TABLE IF NOT EXISTS promo_codes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(32) NOT NULL UNIQUE,
+        amount_cents INT NOT NULL,
+        created_by_user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        used_by_user_id INT NULL,
+        used_at TIMESTAMP NULL,
+        FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (used_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `,
+      "Ensured table promo_codes"
+    );
+
+    // PROMO CODE USES (per-user usage)
+    await run(
+      `
+      CREATE TABLE IF NOT EXISTS promo_code_uses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        promo_code_id INT NOT NULL,
+        user_id INT NOT NULL,
+        amount_cents INT NOT NULL DEFAULT 0,
+        used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY ux_code_user (promo_code_id, user_id),
+        FOREIGN KEY (promo_code_id) REFERENCES promo_codes(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `,
+      "Ensured table promo_code_uses"
+    );
+    await run(
+      `ALTER TABLE promo_code_uses ADD COLUMN IF NOT EXISTS amount_cents INT NOT NULL DEFAULT 0`,
+      "Ensured promo_code_uses.amount_cents"
     );
 
     // Seed one default method if none exists
