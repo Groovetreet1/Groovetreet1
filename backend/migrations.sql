@@ -1,9 +1,12 @@
--- Migrations for Promo App (MySQL)
+-- Migration complète à jour pour Promo App (MySQL)
+-- Date: 11 décembre 2025
 
 CREATE DATABASE IF NOT EXISTS promo_app DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE promo_app;
 
--- users
+-- ===========================
+-- TABLE: users
+-- ===========================
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(255) NOT NULL,
@@ -20,7 +23,9 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_users_invited_by (invited_by_user_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=100000 DEFAULT CHARSET=utf8mb4;
 
--- tasks
+-- ===========================
+-- TABLE: tasks
+-- ===========================
 CREATE TABLE IF NOT EXISTS tasks (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
@@ -33,29 +38,52 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- deposits
+-- ===========================
+-- TABLE: deposit_methods
+-- ===========================
+CREATE TABLE IF NOT EXISTS deposit_methods (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipient_name VARCHAR(255) NOT NULL,
+  bank_name VARCHAR(255) NOT NULL,
+  account_number VARCHAR(255) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===========================
+-- TABLE: deposits
+-- ===========================
 CREATE TABLE IF NOT EXISTS deposits (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   amount_cents INT NOT NULL,
   status VARCHAR(50) NOT NULL,
   full_name VARCHAR(255),
+  method_id INT NULL,
+  processed_by_admin_id INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (method_id) REFERENCES deposit_methods(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- withdrawals
+-- ===========================
+-- TABLE: withdrawals
+-- ===========================
 CREATE TABLE IF NOT EXISTS withdrawals (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   amount_cents INT NOT NULL,
   status VARCHAR(50) NOT NULL,
   type VARCHAR(50) NOT NULL DEFAULT 'WITHDRAW',
+  processed_by_admin_id INT NULL,
+  processed_by INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- task completions history
+-- ===========================
+-- TABLE: task_completions
+-- ===========================
 CREATE TABLE IF NOT EXISTS task_completions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -68,7 +96,9 @@ CREATE TABLE IF NOT EXISTS task_completions (
   FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- bank_accounts
+-- ===========================
+-- TABLE: bank_accounts
+-- ===========================
 CREATE TABLE IF NOT EXISTS bank_accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL UNIQUE,
@@ -79,14 +109,18 @@ CREATE TABLE IF NOT EXISTS bank_accounts (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- promo_role_keys (mot de passe unique pour activer le rôle promo)
+-- ===========================
+-- TABLE: promo_role_keys
+-- ===========================
 CREATE TABLE IF NOT EXISTS promo_role_keys (
   id INT PRIMARY KEY,
   secret_hash VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- promo_codes
+-- ===========================
+-- TABLE: promo_codes
+-- ===========================
 CREATE TABLE IF NOT EXISTS promo_codes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(32) NOT NULL UNIQUE,
@@ -99,7 +133,9 @@ CREATE TABLE IF NOT EXISTS promo_codes (
   FOREIGN KEY (used_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- promo_code_uses : trace des utilisations par utilisateur (1 fois par user)
+-- ===========================
+-- TABLE: promo_code_uses
+-- ===========================
 CREATE TABLE IF NOT EXISTS promo_code_uses (
   id INT AUTO_INCREMENT PRIMARY KEY,
   promo_code_id INT NOT NULL,
@@ -111,7 +147,9 @@ CREATE TABLE IF NOT EXISTS promo_code_uses (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- referrals: who invited whom
+-- ===========================
+-- TABLE: referrals
+-- ===========================
 CREATE TABLE IF NOT EXISTS referrals (
   id INT AUTO_INCREMENT PRIMARY KEY,
   inviter_user_id INT NOT NULL,
@@ -121,7 +159,9 @@ CREATE TABLE IF NOT EXISTS referrals (
   FOREIGN KEY (invited_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- referral bonuses per approved deposit (10% of deposit amount)
+-- ===========================
+-- TABLE: referral_bonuses
+-- ===========================
 CREATE TABLE IF NOT EXISTS referral_bonuses (
   id INT AUTO_INCREMENT PRIMARY KEY,
   deposit_id INT NOT NULL UNIQUE,
@@ -134,13 +174,65 @@ CREATE TABLE IF NOT EXISTS referral_bonuses (
   FOREIGN KEY (invited_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Sample tasks (idempotent inserts)
+-- ===========================
+-- TABLE: admin_actions
+-- ===========================
+CREATE TABLE IF NOT EXISTS admin_actions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  admin_id INT NOT NULL,
+  action_type VARCHAR(50) NOT NULL,
+  target_user_id INT NULL,
+  amount_cents INT NULL,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES users(id),
+  FOREIGN KEY (target_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===========================
+-- TABLE: admin_managed_accounts
+-- ===========================
+CREATE TABLE IF NOT EXISTS admin_managed_accounts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  admin_id INT NOT NULL,
+  account_type VARCHAR(50) NOT NULL DEFAULT 'deposit_method',
+  account_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_account (account_type, account_id),
+  FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_admin (admin_id),
+  INDEX idx_account (account_type, account_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===========================
+-- TABLE: role_change_logs
+-- ===========================
+CREATE TABLE IF NOT EXISTS role_change_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  target_user_id INT NOT NULL,
+  changed_by_user_id INT NOT NULL,
+  old_role VARCHAR(20) NOT NULL,
+  new_role VARCHAR(20) NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (changed_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===========================
+-- SAMPLE DATA: tasks
+-- ===========================
 INSERT INTO tasks (title, description, reward_cents, duration_seconds, min_vip_level, video_url)
 VALUES
   ('Regarder vidéo promo 1', 'Regarde la vidéo pendant au moins 15 secondes.', 200, 15, 'FREE', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
   ('Regarder vidéo promo 2', 'Regarde la vidéo pendant au moins 15 secondes.', 500, 15, 'FREE', 'https://www.youtube.com/watch?v=sOCKUCvEHWM')
 ON DUPLICATE KEY UPDATE title = VALUES(title);
 
-ALTER TABLE deposits ADD COLUMN processed_by_admin_id INT NULL;
-ALTER TABLE withdrawals ADD COLUMN processed_by_admin_id INT NULL;
-
+-- ===========================
+-- NOTES:
+-- ===========================
+-- 1. La table admin_managed_accounts lie chaque compte destinataire à UN SEUL admin
+-- 2. La contrainte UNIQUE sur (account_type, account_id) empêche plusieurs admins de gérer le même compte
+-- 3. Les dépôts sont auto-assignés à l'admin du compte destinataire choisi via method_id
+-- 4. Le champ is_active dans deposit_methods permet d'activer/désactiver les comptes
+-- 5. La table role_change_logs trace tous les changements de rôles utilisateurs
