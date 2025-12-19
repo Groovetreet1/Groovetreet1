@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./contexts/LanguageContext.jsx";
 import MobileRedirectGuard from "./components/MobileRedirectGuard.jsx";
 import MobileFrame from "./components/MobileFrame.jsx";
-import PhoneSettingsPage from "./pages/PhoneSettingsPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
@@ -107,8 +106,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-            {/* Page paramètres téléphone pour mobile */}
-            <Route path="/phone-settings" element={<PhoneSettingsPage />} />
+
             </Routes>
           </MobileRedirectGuard>
         </MobileFrame>

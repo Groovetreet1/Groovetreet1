@@ -1794,8 +1794,41 @@ if (loginTimeStr) {
     }
   };
 
+  // Session expired modal - show BEFORE checking user null
+  if (showSessionExpired) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900">
+        <div className="bg-slate-800 border border-red-500/60 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center">
+          <div className="text-4xl mb-3">😢</div>
+          <h3 className="text-lg font-semibold text-red-200 mb-2">Session expirée</h3>
+          <p className="text-sm text-slate-300 mb-4">
+            Ta session a expiré après 6 heures, merci de te reconnecter.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              localStorage.removeItem("loginTime");
+              window.location.href = "/login";
+            }}
+            className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors"
+          >
+            Se reconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-slate-400">Chargement...</p>
+        </div>
+      </div>
+    );
   }
 
   const avatarUrlFull =
@@ -1954,30 +1987,6 @@ if (loginTimeStr) {
     ...(user?.vipLevel === "VIP" ? [{ id: "promo", label: L.menuPromo }] : []),
     { id: "language", label: L.menuLanguage },
   ];
-
-  // Si la session a expiré, afficher uniquement le modal
-  if (showSessionExpired) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="bg-slate-900 border border-red-500/60 shadow-2xl rounded-2xl p-6 max-w-sm w-[90%] text-center animate-bounce">
-          <div className="text-3xl mb-2">😢</div>
-          <h3 className="text-lg font-semibold text-red-200 mb-2">Session expirée</h3>
-          <p className="text-sm text-slate-200 mb-4">
-            Ta session a expiré après 6 heures, merci de te reconnecter.
-          </p>
-          <button
-            onClick={() => {
-              setShowSessionExpired(false);
-              handleLogout();
-            }}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white"
-          >
-            Se reconnecter
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div

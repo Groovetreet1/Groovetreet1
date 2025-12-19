@@ -439,33 +439,13 @@ app.post("/api/user/upgrade-vip", authMiddleware, async (req, res) => {
 // Helper: Calculer les gains quotidiens d'un utilisateur
 async function getTodayEarnings(userId) {
   console.log(`\n💰 ========== getTodayEarnings appelé pour userId: ${userId} ==========`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   
-  // Récupérer les informations de l'utilisateur pour savoir s'il est VIP et depuis quand
-  const [userRows] = await pool.execute(
-    `SELECT vip_level, 
-            (SELECT created_at FROM withdrawals WHERE user_id = ? AND type = 'VIP_UPGRADE' AND status = 'APPROVED' ORDER BY created_at DESC LIMIT 1) as vip_upgrade_at
-     FROM users WHERE id = ? LIMIT 1`,
-    [userId, userId]
-  );
+  // Toujours utiliser la date d'aujourd'hui pour le reset à minuit
+  // Peu importe si l'utilisateur est VIP ou non, les gains quotidiens se réinitialisent chaque jour
+  const timeCondition = 'DATE(created_at) = CURDATE()';
+  const timeParams = [userId];
   
-  let vipUpgradeTime = null;
-  if (userRows && userRows[0] && userRows[0].vip_upgrade_at) {
-    vipUpgradeTime = new Date(userRows[0].vip_upgrade_at);
-  }
-  
-  // Si l'utilisateur est VIP et qu'on a la date de passage VIP, ne compter que les gains APRÈS le passage VIP
-  let timeCondition = 'DATE(created_at) = CURDATE()';
-  let timeParams = [userId];
-  
-  if (vipUpgradeTime) {
-    timeCondition = 'created_at >= ?';
-    timeParams = [userId, vipUpgradeTime];
-    console.log(`💰 Mode VIP: timeCondition = "created_at >= ${vipUpgradeTime.toISOString()}"`);
-  } else {
-    console.log(`💰 Mode standard: timeCondition = "DATE(created_at) = CURDATE()"`);
-  }
+  console.log(`💰 Mode: Reset quotidien à minuit pour tous les utilisateurs`);
   
   // Calculer les gains de toutes les tâches complétées depuis task_completions
   console.log(`💰 Requête SQL: SELECT SUM(reward_cents) FROM task_completions WHERE user_id = ${userId} AND ${timeCondition}`);
@@ -479,8 +459,8 @@ async function getTodayEarnings(userId) {
   console.log(`💰 Résultat task_completions: total = ${rows[0]?.total || 0} cents, nombre de lignes = ${rows[0]?.count || 0}`);
   
   // Calculer les gains des tâches sociales (Facebook, TikTok, Instagram) depuis completed_social_tasks
-  const timeConditionSocial = vipUpgradeTime ? 'completed_at >= ?' : 'DATE(completed_at) = CURDATE()';
-  const timeParamsSocial = vipUpgradeTime ? [userId, vipUpgradeTime] : [userId];
+  const timeConditionSocial = 'DATE(completed_at) = CURDATE()';
+  const timeParamsSocial = [userId];
   
   const [socialRows] = await pool.execute(
     `SELECT 
