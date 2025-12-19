@@ -1,0 +1,13 @@
+{
+  "name": "god-project",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd backend && npm install && npm start",
+    "build": "cd frontend && npm install && npm run build",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.11"
+  }
+}

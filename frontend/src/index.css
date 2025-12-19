@@ -1,0 +1,266 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-900 text-white;
+}
+
+/* Animations pour le background de la landing page */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.4;
+  }
+  33% {
+    transform: translate(50px, -70px) scale(1.2);
+    opacity: 0.6;
+  }
+  66% {
+    transform: translate(-40px, 30px) scale(0.9);
+    opacity: 0.5;
+  }
+}
+
+.animate-blob {
+  animation: blob 8s ease-in-out infinite;
+}
+
+@keyframes gradient {
+  0%, 100% {
+    opacity: 0.6;
+    background-position: 0% 50%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient 6s ease-in-out infinite;
+  background-size: 200% 200%;
+}
+
+@keyframes line-horizontal {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-line-horizontal {
+  animation: line-horizontal 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translateY(-30px) translateX(15px) scale(1.1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-60px) translateX(-15px) scale(1.2);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-30px) translateX(15px) scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-3000 {
+  animation-delay: 3s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scrollbar personnalisé pour les notifications et dashboard */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 10px;
+  margin: 4px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #818cf8, #a78bfa);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Pour Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 rgba(15, 23, 42, 0.3);
+}
+
+/* Animation pour le popup d'image */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Animation shimmer pour la carte VIP ELITE 500 MAD */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite;
+}
+
+/* Animation pour le hover scale léger */
+@keyframes scaleUp {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+/* ========================================
+   MODE PORTRAIT - Mobile-first layout
+   ======================================== */
+
+/* Container principal qui simule un téléphone sur desktop */
+.mobile-frame {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #0f172a;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Sur desktop: largeur max de téléphone, centré avec fond différent */
+@media (min-width: 768px) {
+  body {
+    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);
+  }
+  
+  .mobile-frame {
+    max-width: 430px;
+    min-height: 100vh;
+    box-shadow: 0 0 80px rgba(99, 102, 241, 0.15),
+                0 0 40px rgba(139, 92, 246, 0.1),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Animation d'entrée du frame */
+@keyframes frameSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mobile-frame {
+  animation: frameSlideIn 0.3s ease-out;
+}
+
+/* Overlay de rotation pour forcer le mode portrait */
+.rotate-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+.rotate-overlay .rotate-icon {
+  font-size: 4rem;
+  animation: rotatePhone 2s ease-in-out infinite;
+}
+
+@keyframes rotatePhone {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
+}
+
+/* Afficher l'overlay en mode paysage sur mobile */
+@media (max-width: 767px) and (orientation: landscape) {
+  .rotate-overlay {
+    display: flex;
+  }
+  
+  .mobile-frame {
+    display: none;
+  }
+}
