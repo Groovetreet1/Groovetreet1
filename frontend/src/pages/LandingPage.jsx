@@ -127,7 +127,13 @@ export default function LandingPage() {
       <header className="w-full border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm relative z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           {/* Logo + nom */}
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => {
+              const token = localStorage.getItem("token");
+              if (token) navigate("/dashboard");
+            }}
+          >
             <img
               src="/app-icon.png"
               alt="Windelevery"

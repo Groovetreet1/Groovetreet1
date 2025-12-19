@@ -1948,6 +1948,7 @@ if (loginTimeStr) {
     if (dailyRateCents >= 1500) return "300 MAD";
     if (dailyRateCents >= 800) return "150 MAD";
     if (dailyRateCents >= 500) return "80 MAD";
+    if (dailyRateCents > 0) return "STARTER";
     return null;
   };
   
@@ -2021,20 +2022,25 @@ if (loginTimeStr) {
                 )}
               </svg>
             </button>
-            <div className="relative">
-              <img
-                src="/app-icon.png"
-                alt="Windelevery"
-                className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl object-cover shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500/20"
-              />
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
-            </div>
-            <div className={`${language === "ar" ? "text-right" : ""} hidden sm:block`}>
-              <div className="text-xs sm:text-sm font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                {L.appTitle}
+            <div 
+              className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/dashboard')}
+            >
+              <div className="relative">
+                <img
+                  src="/app-icon.png"
+                  alt="Windelevery"
+                  className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl object-cover shadow-lg shadow-indigo-500/30 ring-2 ring-indigo-500/20"
+                />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
               </div>
-              <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-                {L.appSubtitle}
+              <div className={`${language === "ar" ? "text-right" : ""} hidden sm:block`}>
+                <div className="text-xs sm:text-sm font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  {L.appTitle}
+                </div>
+                <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
+                  {L.appSubtitle}
+                </div>
               </div>
             </div>
           </div>
@@ -2355,7 +2361,10 @@ if (loginTimeStr) {
               ).map((link) => (
                 <button
                   key={link.id}
-                  onClick={() => setActiveSection(link.id)}
+                  onClick={() => {
+                    setActiveSection(link.id);
+                    setSidebarOpen(false);
+                  }}
                   className={`w-full text-left text-base px-5 py-4 rounded-xl transition-all duration-200 flex items-center gap-4 group ${
                     activeSection === link.id
                       ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 font-semibold"
@@ -3973,15 +3982,15 @@ if (loginTimeStr) {
 
       {/* MODAL VIP - 4 PLANS DE PRICING */}
       {showVipModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-6xl my-8">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-4 sm:p-6 w-full max-w-6xl mt-4 sm:my-8">
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
               <div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                   Passer en VIP
                 </h3>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
                   Choisissez le plan qui vous convient le mieux
                 </p>
               </div>
@@ -4001,17 +4010,17 @@ if (loginTimeStr) {
             </div>
 
             {/* Solde actuel */}
-            <div className="mb-6 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-slate-800/50 border border-slate-700">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-300">Votre solde actuel:</span>
-                <span className="text-xl font-bold text-emerald-400">
+                <span className="text-xs sm:text-sm text-slate-300">Votre solde actuel:</span>
+                <span className="text-lg sm:text-xl font-bold text-emerald-400">
                   {(user.balanceCents || 0) / 100} MAD
                 </span>
               </div>
             </div>
 
             {/* Grille des 4 cartes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 max-h-[60vh] sm:max-h-none overflow-y-auto sm:overflow-visible">
               {/* Carte 1: 80 MAD - 1 mois */}
               {(() => {
                 const isVip = (user?.vipLevel || "").toUpperCase().includes("VIP");
@@ -4020,7 +4029,7 @@ if (loginTimeStr) {
                 const isDisabled = isVip && currentDailyRate >= plan1DailyRate;
                 return (
               <div
-                className={`relative rounded-xl border-2 p-6 transition-all duration-300 ${
+                className={`relative rounded-xl border-2 p-4 sm:p-6 transition-all duration-300 ${
                   isDisabled
                     ? "border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed"
                     : selectedVipPlan === 1
@@ -4079,7 +4088,7 @@ if (loginTimeStr) {
                 const isDisabled = currentDailyRate >= plan2DailyRate;
                 return (
               <div
-                className={`relative rounded-xl border-2 p-6 transition-all duration-300 ${
+                className={`relative rounded-xl border-2 p-4 sm:p-6 transition-all duration-300 ${
                   isDisabled
                     ? "border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed"
                     : selectedVipPlan === 2
@@ -4138,7 +4147,7 @@ if (loginTimeStr) {
                 const isDisabled = currentDailyRate >= plan3DailyRate;
                 return (
               <div
-                className={`relative rounded-xl border-2 p-6 transition-all duration-300 ${
+                className={`relative rounded-xl border-2 p-4 sm:p-6 transition-all duration-300 ${
                   isDisabled
                     ? "border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed"
                     : selectedVipPlan === 3
@@ -4197,7 +4206,7 @@ if (loginTimeStr) {
                 const isDisabled = currentDailyRate >= plan4DailyRate;
                 return (
               <div
-                className={`relative rounded-xl border-2 p-6 transition-all duration-300 overflow-hidden ${
+                className={`relative rounded-xl border-2 p-4 sm:p-6 transition-all duration-300 overflow-hidden ${
                   isDisabled
                     ? "border-slate-700 bg-slate-800/30 opacity-50 cursor-not-allowed"
                     : selectedVipPlan === 4

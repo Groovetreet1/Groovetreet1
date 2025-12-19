@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { buildApiUrl } from "../apiConfig";
 import { useTranslation } from "../contexts/LanguageContext.jsx";
@@ -13,6 +13,15 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    if (token && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,7 +112,14 @@ export default function RegisterPage() {
           </svg>
         </Link>
 
-        <div className="flex justify-center mb-3">
+        <div 
+          className="flex justify-center mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => {
+            const token = localStorage.getItem("token");
+            if (token) navigate("/dashboard");
+            else navigate("/");
+          }}
+        >
           <img
             src="/app-icon.png"
             alt="Windelevery"

@@ -107,6 +107,9 @@ function App() {
           }
         />
 
+        {/* Catch-all route - 404 redirect to landing page */}
+        <Route path="*" element={<LandingPage />} />
+
             </Routes>
           </MobileRedirectGuard>
         </MobileFrame>

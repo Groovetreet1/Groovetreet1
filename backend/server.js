@@ -440,28 +440,35 @@ app.post("/api/user/upgrade-vip", authMiddleware, async (req, res) => {
 async function getTodayEarnings(userId) {
   console.log(`\n💰 ========== getTodayEarnings appelé pour userId: ${userId} ==========`);
   
-  // Toujours utiliser la date d'aujourd'hui pour le reset à minuit
-  // Peu importe si l'utilisateur est VIP ou non, les gains quotidiens se réinitialisent chaque jour
-  const timeCondition = 'DATE(created_at) = CURDATE()';
-  const timeParams = [userId];
+  // Calculer la date d'aujourd'hui en heure marocaine (UTC+0 ou UTC+1 selon DST)
+  // Le Maroc utilise le fuseau horaire Africa/Casablanca
+  const now = new Date();
+  const moroccoDate = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Casablanca' }));
+  const todayStart = new Date(moroccoDate.getFullYear(), moroccoDate.getMonth(), moroccoDate.getDate(), 0, 0, 0);
+  const tomorrowStart = new Date(moroccoDate.getFullYear(), moroccoDate.getMonth(), moroccoDate.getDate() + 1, 0, 0, 0);
   
-  console.log(`💰 Mode: Reset quotidien à minuit pour tous les utilisateurs`);
+  // Formater pour MySQL (YYYY-MM-DD HH:MM:SS)
+  const formatForMySQL = (date) => {
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+  };
+  
+  const todayStartStr = formatForMySQL(todayStart);
+  const tomorrowStartStr = formatForMySQL(tomorrowStart);
+  
+  console.log(`💰 Date Maroc: ${moroccoDate.toISOString()}`);
+  console.log(`💰 Période: ${todayStartStr} -> ${tomorrowStartStr}`);
   
   // Calculer les gains de toutes les tâches complétées depuis task_completions
-  console.log(`💰 Requête SQL: SELECT SUM(reward_cents) FROM task_completions WHERE user_id = ${userId} AND ${timeCondition}`);
   const [rows] = await pool.execute(
     `SELECT COALESCE(SUM(reward_cents), 0) as total, COUNT(*) as count
      FROM task_completions
-     WHERE user_id = ? AND ${timeCondition}`,
-    timeParams
+     WHERE user_id = ? AND created_at >= ? AND created_at < ?`,
+    [userId, todayStartStr, tomorrowStartStr]
   );
   
   console.log(`💰 Résultat task_completions: total = ${rows[0]?.total || 0} cents, nombre de lignes = ${rows[0]?.count || 0}`);
   
-  // Calculer les gains des tâches sociales (Facebook, TikTok, Instagram) depuis completed_social_tasks
-  const timeConditionSocial = 'DATE(completed_at) = CURDATE()';
-  const timeParamsSocial = [userId];
-  
+  // Calculer les gains des tâches sociales
   const [socialRows] = await pool.execute(
     `SELECT 
        COALESCE(SUM(CASE 
@@ -471,8 +478,8 @@ async function getTodayEarnings(userId) {
          ELSE 0
        END), 0) as total
      FROM completed_social_tasks
-     WHERE user_id = ? AND ${timeConditionSocial}`,
-    timeParamsSocial
+     WHERE user_id = ? AND completed_at >= ? AND completed_at < ?`,
+    [userId, todayStartStr, tomorrowStartStr]
   );
   
   console.log(`💰 Résultat completed_social_tasks: total = ${socialRows[0]?.total || 0} cents`);
@@ -481,7 +488,7 @@ async function getTodayEarnings(userId) {
   const taskTotal = parseInt(rows[0]?.total || 0, 10);
   const socialTotal = parseInt(socialRows[0]?.total || 0, 10);
   
-  console.log(`💰 DEBUG: taskTotal (type=${typeof taskTotal}) = ${taskTotal}, socialTotal (type=${typeof socialTotal}) = ${socialTotal}`);
+  console.log(`💰 DEBUG: taskTotal = ${taskTotal}, socialTotal = ${socialTotal}`);
   
   const totalEarnings = taskTotal + socialTotal;
   console.log(`💰 TOTAL FINAL: ${totalEarnings} cents (${totalEarnings / 100} MAD)`);
