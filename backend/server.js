@@ -3918,15 +3918,22 @@ app.get('/api/spin-wheel/can-spin', authMiddleware, async (req, res) => {
     const mondayStr = mondayOfWeek.toISOString().split('T')[0];
     const isMonday = isMondayGMT1();
     
-    // Check if already spun this week
-    const [rows] = await pool.execute(
-      'SELECT id, result, reward_cents FROM spin_wheel_history WHERE user_id = ? AND spin_week_start = ? LIMIT 1',
-      [userId, mondayStr]
-    );
+    let alreadySpun = false;
     
-    const alreadySpun = rows.length > 0;
+    try {
+      // Check if already spun this week
+      const [rows] = await pool.execute(
+        'SELECT id, result, reward_cents FROM spin_wheel_history WHERE user_id = ? AND spin_week_start = ? LIMIT 1',
+        [userId, mondayStr]
+      );
+      alreadySpun = rows.length > 0;
+    } catch (dbErr) {
+      // Table might not exist yet, treat as not spun
+      console.log('Spin wheel table might not exist:', dbErr.message);
+      alreadySpun = false;
+    }
     
-    // Always show popup, but indicate if can actually spin
+    // Always show popup for all users, but indicate if can actually spin
     return res.json({ 
       showPopup: !alreadySpun, // Show popup if haven't spun this week
       canSpin: isMonday && !alreadySpun, // Can only spin on Monday and if not already spun
@@ -3934,13 +3941,12 @@ app.get('/api/spin-wheel/can-spin', authMiddleware, async (req, res) => {
       alreadySpun,
       message: alreadySpun 
         ? 'Vous avez déjà tourné la roue cette semaine!'
-        : (!isMonday ? 'Revenez lundi pour tourner la roue!' : null),
-      lastResult: alreadySpun ? rows[0].result : null,
-      lastReward: alreadySpun ? rows[0].reward_cents : null
+        : (!isMonday ? 'Revenez lundi pour tourner la roue!' : null)
     });
   } catch (err) {
     console.error('Error in /api/spin-wheel/can-spin:', err);
-    return res.status(500).json({ message: 'Erreur serveur.' });
+    // On error, still show popup
+    return res.json({ showPopup: true, canSpin: false, message: 'Revenez lundi!' });
   }
 });
 
