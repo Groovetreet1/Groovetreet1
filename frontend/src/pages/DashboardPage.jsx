@@ -364,6 +364,11 @@ export default function DashboardPage() {
           balanceCents: data.new_balance_cents,
         }));
       }
+      
+      // Update today's earnings
+      if (data.reward_cents) {
+        setTodayEarnings(prev => prev + data.reward_cents);
+      }
 
       // Show success toast
       const reward = productRewards[productId];
