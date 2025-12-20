@@ -2010,9 +2010,11 @@ app.post("/api/rate-store/complete", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "La note doit être entre 1 et 5." });
     }
     
-    // Validate reward is between 50 and 200 cents (0.5 - 2 MAD)
+    // Validate reward: FREE users 50-100 cents (0.5-1 MAD), VIP users 50-300 cents (0.5-3 MAD)
     const rewardCentsInt = parseInt(rewardCents, 10);
-    if (rewardCentsInt < 50 || rewardCentsInt > 200) {
+    const isVip = trialRows && trialRows[0] && trialRows[0].vip_level === 'VIP';
+    const maxReward = isVip ? 300 : 100;
+    if (rewardCentsInt < 50 || rewardCentsInt > maxReward) {
       return res.status(400).json({ message: "Récompense invalide." });
     }
     

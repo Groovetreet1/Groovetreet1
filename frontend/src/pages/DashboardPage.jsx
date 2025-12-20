@@ -286,10 +286,11 @@ export default function DashboardPage() {
     return shuffled.slice(0, taskCount);
   };
 
-  // Generate random reward between 0.5 and 2 MAD
+  // Generate random reward: FREE users 0.5-1 MAD, VIP users 0.5-3 MAD
   const generateRandomReward = () => {
     const min = 0.5;
-    const max = 2;
+    const isVip = user?.vipLevel === 'VIP';
+    const max = isVip ? 3 : 1;
     return (Math.random() * (max - min) + min).toFixed(2);
   };
 
