@@ -2876,27 +2876,46 @@ if (loginTimeStr) {
                       </div>
                     </div>
 
-                    {/* Rate Stores Card - ACTIVE */}
-                    <button
-                      onClick={() => {
-                        setSelectedPlatform('ratestores');
-                        setSelectedStore(null);
-                      }}
-                      className="group relative bg-gradient-to-br from-emerald-500/90 to-teal-700/90 hover:from-emerald-500 hover:to-teal-700 rounded-2xl p-8 border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/50"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                        </svg>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-white mb-1">Rate Stores</h3>
-                          <p className="text-xs text-white/80">Noter les produits des magasins</p>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
-                          <span className="text-[10px] font-semibold text-white">Actif</span>
+                    {/* Rate Stores Card - ACTIVE (or disabled if limit reached) */}
+                    {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                      <div
+                        className="group relative bg-gradient-to-br from-emerald-500/30 to-teal-700/30 rounded-2xl p-8 border border-emerald-400/20 opacity-60 cursor-not-allowed"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <svg className="w-16 h-16 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-white/70 mb-1">Rate Stores</h3>
+                            <p className="text-xs text-white/50">Limite atteinte</p>
+                          </div>
+                          <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
+                            <span className="text-[10px] font-semibold text-white">Limité</span>
+                          </div>
                         </div>
                       </div>
-                    </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedPlatform('ratestores');
+                          setSelectedStore(null);
+                        }}
+                        className="group relative bg-gradient-to-br from-emerald-500/90 to-teal-700/90 hover:from-emerald-500 hover:to-teal-700 rounded-2xl p-8 border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/50"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-white mb-1">Rate Stores</h3>
+                            <p className="text-xs text-white/80">Noter les produits des magasins</p>
+                          </div>
+                          <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
+                            <span className="text-[10px] font-semibold text-white">Actif</span>
+                          </div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </section>
               )}
@@ -2924,7 +2943,21 @@ if (loginTimeStr) {
                     </div>
                   </div>
 
-                  {!selectedStore ? (
+                  {/* Check if daily limit reached */}
+                  {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                    <div className="bg-amber-900/30 border border-amber-500/40 rounded-xl p-6 text-center">
+                      <svg className="w-16 h-16 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <h3 className="text-lg font-bold text-amber-300 mb-2">Limite quotidienne atteinte !</h3>
+                      <p className="text-sm text-slate-300 mb-2">
+                        Vous avez gagné <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> aujourd'hui.
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        Revenez demain pour continuer à gagner !
+                      </p>
+                    </div>
+                  ) : !selectedStore ? (
                     // Store Selection
                     <div>
                       <p className="text-sm text-slate-300 mb-4">Choisissez un magasin pour noter ses produits :</p>
