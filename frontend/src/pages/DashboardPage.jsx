@@ -230,6 +230,7 @@ export default function DashboardPage() {
   const [productRewards, setProductRewards] = useState({});
   const [validatedProducts, setValidatedProducts] = useState({});
   const [validatingProduct, setValidatingProduct] = useState(null);
+  const [completedStores, setCompletedStores] = useState([]); // Stores completed by FREE users (can't redo)
 
   // Store products data
   const allStoreProducts = {
@@ -361,7 +362,26 @@ export default function DashboardPage() {
       }
       
       // Mark as validated
-      setValidatedProducts(prev => ({ ...prev, [productId]: true }));
+      setValidatedProducts(prev => {
+        const newValidated = { ...prev, [productId]: true };
+        
+        // Check if all products in this store are validated (for FREE users)
+        const isVip = user?.vipLevel === 'VIP';
+        if (!isVip) {
+          const allValidated = storeProducts.every(p => newValidated[p.id]);
+          if (allValidated && selectedStore) {
+            // Mark this store as completed for FREE user
+            setCompletedStores(prevStores => {
+              if (!prevStores.includes(selectedStore)) {
+                return [...prevStores, selectedStore];
+              }
+              return prevStores;
+            });
+          }
+        }
+        
+        return newValidated;
+      });
       setValidatingProduct(null);
       
       // Update user balance in state
@@ -3040,93 +3060,179 @@ if (loginTimeStr) {
                   ) : !selectedStore ? (
                     // Store Selection
                     <div>
-                      <p className="text-sm text-slate-300 mb-4">Choisissez un magasin pour noter ses produits :</p>
+                      <p className="text-sm text-slate-300 mb-4">
+                        {user?.vipLevel === 'VIP' 
+                          ? 'Choisissez un magasin pour noter ses produits :'
+                          : `Choisissez un magasin pour noter ses produits (${5 - completedStores.length} restants) :`
+                        }
+                      </p>
                       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                         {/* Marjane */}
-                        <button
-                          onClick={() => handleSelectStore('marjane')}
-                          className="group bg-gradient-to-br from-red-600/80 to-red-800/80 hover:from-red-600 hover:to-red-800 rounded-xl p-4 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 transform hover:scale-105"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                              <img 
-                                src="/logos/marjane.svg" 
-                                alt="Marjane" 
-                                className="w-full h-full object-contain"
-                              />
+                        {user?.vipLevel !== 'VIP' && completedStores.includes('marjane') ? (
+                          <div className="relative bg-gradient-to-br from-red-600/30 to-red-800/30 rounded-xl p-4 border border-red-500/20 opacity-60 cursor-not-allowed">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/marjane.svg" alt="Marjane" className="w-full h-full object-contain opacity-50" />
+                              </div>
+                              <span className="text-white/50 font-semibold text-sm">Marjane</span>
                             </div>
-                            <span className="text-white font-semibold text-sm">Marjane</span>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
-                        </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectStore('marjane')}
+                            className="group bg-gradient-to-br from-red-600/80 to-red-800/80 hover:from-red-600 hover:to-red-800 rounded-xl p-4 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/marjane.svg" alt="Marjane" className="w-full h-full object-contain" />
+                              </div>
+                              <span className="text-white font-semibold text-sm">Marjane</span>
+                            </div>
+                          </button>
+                        )}
 
                         {/* Carrefour */}
-                        <button
-                          onClick={() => handleSelectStore('carrefour')}
-                          className="group bg-gradient-to-br from-blue-600/80 to-blue-800/80 hover:from-blue-600 hover:to-blue-800 rounded-xl p-4 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                              <img 
-                                src="/logos/carrefour.svg" 
-                                alt="Carrefour" 
-                                className="w-full h-full object-contain"
-                              />
+                        {user?.vipLevel !== 'VIP' && completedStores.includes('carrefour') ? (
+                          <div className="relative bg-gradient-to-br from-blue-600/30 to-blue-800/30 rounded-xl p-4 border border-blue-500/20 opacity-60 cursor-not-allowed">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/carrefour.svg" alt="Carrefour" className="w-full h-full object-contain opacity-50" />
+                              </div>
+                              <span className="text-white/50 font-semibold text-sm">Carrefour</span>
                             </div>
-                            <span className="text-white font-semibold text-sm">Carrefour</span>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
-                        </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectStore('carrefour')}
+                            className="group bg-gradient-to-br from-blue-600/80 to-blue-800/80 hover:from-blue-600 hover:to-blue-800 rounded-xl p-4 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/carrefour.svg" alt="Carrefour" className="w-full h-full object-contain" />
+                              </div>
+                              <span className="text-white font-semibold text-sm">Carrefour</span>
+                            </div>
+                          </button>
+                        )}
 
                         {/* Jumia Maroc */}
-                        <button
-                          onClick={() => handleSelectStore('jumia')}
-                          className="group bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-500 hover:to-orange-700 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                              <img 
-                                src="/logos/jumia.svg" 
-                                alt="Jumia" 
-                                className="w-full h-full object-contain"
-                              />
+                        {user?.vipLevel !== 'VIP' && completedStores.includes('jumia') ? (
+                          <div className="relative bg-gradient-to-br from-orange-500/30 to-orange-700/30 rounded-xl p-4 border border-orange-400/20 opacity-60 cursor-not-allowed">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/jumia.svg" alt="Jumia" className="w-full h-full object-contain opacity-50" />
+                              </div>
+                              <span className="text-white/50 font-semibold text-sm">Jumia Maroc</span>
                             </div>
-                            <span className="text-white font-semibold text-sm">Jumia Maroc</span>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
-                        </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectStore('jumia')}
+                            className="group bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-500 hover:to-orange-700 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/jumia.svg" alt="Jumia" className="w-full h-full object-contain" />
+                              </div>
+                              <span className="text-white font-semibold text-sm">Jumia Maroc</span>
+                            </div>
+                          </button>
+                        )}
 
                         {/* Electroplanet */}
-                        <button
-                          onClick={() => handleSelectStore('electroplanet')}
-                          className="group bg-gradient-to-br from-yellow-500/80 to-yellow-700/80 hover:from-yellow-500 hover:to-yellow-700 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:scale-105"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                              <img 
-                                src="/logos/electroplanet.svg" 
-                                alt="Electroplanet" 
-                                className="w-full h-full object-contain"
-                              />
+                        {user?.vipLevel !== 'VIP' && completedStores.includes('electroplanet') ? (
+                          <div className="relative bg-gradient-to-br from-yellow-500/30 to-yellow-700/30 rounded-xl p-4 border border-yellow-400/20 opacity-60 cursor-not-allowed">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/electroplanet.svg" alt="Electroplanet" className="w-full h-full object-contain opacity-50" />
+                              </div>
+                              <span className="text-white/50 font-semibold text-sm">Electroplanet</span>
                             </div>
-                            <span className="text-white font-semibold text-sm">Electroplanet</span>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
-                        </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectStore('electroplanet')}
+                            className="group bg-gradient-to-br from-yellow-500/80 to-yellow-700/80 hover:from-yellow-500 hover:to-yellow-700 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/electroplanet.svg" alt="Electroplanet" className="w-full h-full object-contain" />
+                              </div>
+                              <span className="text-white font-semibold text-sm">Electroplanet</span>
+                            </div>
+                          </button>
+                        )}
 
                         {/* Supeco */}
-                        <button
-                          onClick={() => handleSelectStore('supeco')}
-                          className="group bg-gradient-to-br from-green-600/80 to-green-800/80 hover:from-green-600 hover:to-green-800 rounded-xl p-4 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105"
-                        >
-                          <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                              <img 
-                                src="/logos/supeco.svg" 
-                                alt="Supeco" 
-                                className="w-full h-full object-contain"
-                              />
+                        {user?.vipLevel !== 'VIP' && completedStores.includes('supeco') ? (
+                          <div className="relative bg-gradient-to-br from-green-600/30 to-green-800/30 rounded-xl p-4 border border-green-500/20 opacity-60 cursor-not-allowed">
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white/50 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/supeco.svg" alt="Supeco" className="w-full h-full object-contain opacity-50" />
+                              </div>
+                              <span className="text-white/50 font-semibold text-sm">Supeco</span>
                             </div>
-                            <span className="text-white font-semibold text-sm">Supeco</span>
+                            <div className="absolute top-1 right-1 bg-emerald-500/80 rounded-full p-1">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
                           </div>
-                        </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSelectStore('supeco')}
+                            className="group bg-gradient-to-br from-green-600/80 to-green-800/80 hover:from-green-600 hover:to-green-800 rounded-xl p-4 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex flex-col items-center space-y-2">
+                              <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                                <img src="/logos/supeco.svg" alt="Supeco" className="w-full h-full object-contain" />
+                              </div>
+                              <span className="text-white font-semibold text-sm">Supeco</span>
+                            </div>
+                          </button>
+                        )}
                       </div>
+                      
+                      {/* All stores completed message for FREE users */}
+                      {user?.vipLevel !== 'VIP' && completedStores.length >= 5 && (
+                        <div className="mt-6 p-4 bg-gradient-to-r from-emerald-600/80 to-teal-600/80 rounded-xl border border-emerald-400/30">
+                          <div className="flex items-center gap-3">
+                            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <div>
+                              <h3 className="text-white font-bold">Tous les magasins notés !</h3>
+                              <p className="text-white/80 text-sm">Passez au VIP pour noter plus de produits chaque jour.</p>
+                            </div>
+                            <button
+                              onClick={() => setShowVipModal(true)}
+                              className="ml-auto px-4 py-2 bg-white text-emerald-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              Passer VIP
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     // Product Rating Section
