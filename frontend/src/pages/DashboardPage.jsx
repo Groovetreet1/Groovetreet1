@@ -164,6 +164,7 @@ export default function DashboardPage() {
   const [vipLoading, setVipLoading] = useState(false);
   const [vipError, setVipError] = useState("");
   const [selectedVipPlan, setSelectedVipPlan] = useState(null);
+  const [showVipFeaturesPopup, setShowVipFeaturesPopup] = useState(null); // Plan number to show features
   const [vipPromoCode, setVipPromoCode] = useState("");
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
   const [requiredAmount, setRequiredAmount] = useState(0);
@@ -4687,6 +4688,258 @@ if (loginTimeStr) {
         </div>
       )}
 
+      {/* VIP Features Popup */}
+      {showVipFeaturesPopup && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-purple-500/50 rounded-3xl p-6 w-full max-w-lg shadow-2xl relative overflow-hidden animate-fadeIn">
+            {/* Background decoration */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500 rounded-full filter blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-indigo-500 rounded-full filter blur-3xl"></div>
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => setShowVipFeaturesPopup(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-700/80 hover:bg-slate-600 flex items-center justify-center z-10 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Plan 1: STARTER */}
+            {showVipFeaturesPopup === 1 && (
+              <div className="relative z-10">
+                <div className="text-center mb-6">
+                  <div className="inline-block px-4 py-2 rounded-full bg-indigo-500/20 text-indigo-400 text-sm font-bold mb-3">
+                    ⭐ PACK STARTER
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-1">80 MAD</h3>
+                  <p className="text-slate-400">Validité: 2 mois</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">5 MAD / Jour</p>
+                      <p className="text-xs text-slate-400">Gains journaliers garantis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">60 jours d'accès</p>
+                      <p className="text-xs text-slate-400">Accès complet pendant 2 mois</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Codes promo acceptés</p>
+                      <p className="text-xs text-slate-400">Utilisez vos codes de réduction</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Gain total: ~300 MAD</p>
+                      <p className="text-xs text-slate-400">Retour sur investissement x3.75</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowVipFeaturesPopup(null); setSelectedVipPlan(1); }}
+                  className="w-full mt-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg"
+                >
+                  Choisir ce pack
+                </button>
+              </div>
+            )}
+
+            {/* Plan 2: POPULAIRE */}
+            {showVipFeaturesPopup === 2 && (
+              <div className="relative z-10">
+                <div className="text-center mb-6">
+                  <div className="inline-block px-4 py-2 rounded-full bg-purple-500/20 text-purple-400 text-sm font-bold mb-3">
+                    🔥 PACK POPULAIRE
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-1">150 MAD</h3>
+                  <p className="text-slate-400">Validité: 3 mois</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">8 MAD / Jour</p>
+                      <p className="text-xs text-slate-400">Gains journaliers garantis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">90 jours d'accès</p>
+                      <p className="text-xs text-slate-400">Accès complet pendant 3 mois</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Codes promo acceptés</p>
+                      <p className="text-xs text-slate-400">Utilisez vos codes de réduction</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Gain total: ~720 MAD</p>
+                      <p className="text-xs text-slate-400">Retour sur investissement x4.8</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowVipFeaturesPopup(null); setSelectedVipPlan(2); }}
+                  className="w-full mt-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg"
+                >
+                  Choisir ce pack
+                </button>
+              </div>
+            )}
+
+            {/* Plan 3: PREMIUM */}
+            {showVipFeaturesPopup === 3 && (
+              <div className="relative z-10">
+                <div className="text-center mb-6">
+                  <div className="inline-block px-4 py-2 rounded-full bg-amber-500/20 text-amber-400 text-sm font-bold mb-3">
+                    💎 PACK PREMIUM
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-1">300 MAD</h3>
+                  <p className="text-slate-400">Validité: 3 mois</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">15 MAD / Jour</p>
+                      <p className="text-xs text-slate-400">Gains journaliers garantis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">90 jours d'accès</p>
+                      <p className="text-xs text-slate-400">Accès complet pendant 3 mois</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Codes promo acceptés</p>
+                      <p className="text-xs text-slate-400">Utilisez vos codes de réduction</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Gain total: ~1350 MAD</p>
+                      <p className="text-xs text-slate-400">Retour sur investissement x4.5</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowVipFeaturesPopup(null); setSelectedVipPlan(3); }}
+                  className="w-full mt-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 transition-all shadow-lg"
+                >
+                  Choisir ce pack
+                </button>
+              </div>
+            )}
+
+            {/* Plan 4: ELITE VIP */}
+            {showVipFeaturesPopup === 4 && (
+              <div className="relative z-10">
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500/30 to-amber-500/30 border border-yellow-500/50 text-yellow-400 text-sm font-bold mb-3">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                    PACK ELITE VIP GOLD
+                  </div>
+                  <h3 className="text-3xl font-black bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent mb-1">500 MAD</h3>
+                  <p className="text-yellow-400/80">Validité: 6 mois</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">20 MAD / Jour</p>
+                      <p className="text-xs text-yellow-400/70">Les meilleurs gains disponibles</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">180 jours d'accès</p>
+                      <p className="text-xs text-yellow-400/70">Accès VIP pendant 6 mois complets</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Statut ELITE exclusif</p>
+                      <p className="text-xs text-yellow-400/70">Badge doré et privilèges spéciaux</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">Gain total: ~3600 MAD</p>
+                      <p className="text-xs text-yellow-400/70">Retour sur investissement x7.2</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowVipFeaturesPopup(null); setSelectedVipPlan(4); }}
+                  className="w-full mt-6 py-3 rounded-xl font-bold text-black bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 transition-all shadow-lg shadow-yellow-500/30"
+                >
+                  ⭐ Choisir ce pack ELITE
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Modal de succès - Tâche complétée */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
@@ -5011,6 +5264,12 @@ if (loginTimeStr) {
                     <span className="text-sm text-slate-300">Code promo accepté</span>
                   </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowVipFeaturesPopup(1); }}
+                  className="w-full mt-4 py-2 rounded-lg text-xs font-semibold text-indigo-300 border border-indigo-500/50 hover:bg-indigo-500/20 transition-all"
+                >
+                  ℹ️ Voir les avantages
+                </button>
               </div>
               );
               })()}
@@ -5070,6 +5329,12 @@ if (loginTimeStr) {
                     <span className="text-sm text-slate-300">Code promo accepté</span>
                   </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowVipFeaturesPopup(2); }}
+                  className="w-full mt-4 py-2 rounded-lg text-xs font-semibold text-purple-300 border border-purple-500/50 hover:bg-purple-500/20 transition-all"
+                >
+                  ℹ️ Voir les avantages
+                </button>
               </div>
               );
               })()}
@@ -5129,6 +5394,12 @@ if (loginTimeStr) {
                     <span className="text-sm text-slate-300">Code promo accepté</span>
                   </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowVipFeaturesPopup(3); }}
+                  className="w-full mt-4 py-2 rounded-lg text-xs font-semibold text-amber-300 border border-amber-500/50 hover:bg-amber-500/20 transition-all"
+                >
+                  ℹ️ Voir les avantages
+                </button>
               </div>
               );
               })()}
@@ -5219,6 +5490,12 @@ if (loginTimeStr) {
                     <span className="text-sm font-semibold text-yellow-400">💎 Plan Premium Exclusif</span>
                   </div>
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowVipFeaturesPopup(4); }}
+                  className="w-full mt-4 py-2 rounded-lg text-xs font-semibold text-yellow-400 border border-yellow-500/50 hover:bg-yellow-500/20 transition-all relative z-10"
+                >
+                  ⭐ Voir les avantages ELITE
+                </button>
               </div>
               );
               })()}
