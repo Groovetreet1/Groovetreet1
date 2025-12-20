@@ -2824,8 +2824,8 @@ if (loginTimeStr) {
                     <p className="text-[11px] text-emerald-300">{L.overviewWelcome}</p>
                   </div>
                   
-                  {/* Carte Limite Quotidienne - Affichée seulement si l'utilisateur a une limite */}
-                  {dailyLimit > 0 && (
+                  {/* Carte Limite Quotidienne - Affichée seulement pour VIP */}
+                  {isUserVip && dailyLimit > 0 && (
                     <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700 flex flex-col items-center justify-center text-center">
                       <p className="text-xs text-slate-400 mb-3">Gains d'aujourd'hui</p>
                       <p className="text-3xl font-bold text-white mb-2">
