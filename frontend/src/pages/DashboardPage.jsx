@@ -1091,8 +1091,9 @@ if (loginTimeStr) {
 
     // Check if user can spin the weekly wheel (only once per login session)
     const checkSpinWheel = async () => {
-      // Check if already shown this session
-      const shownThisSession = sessionStorage.getItem("spinWheelShown");
+      // Check if already shown this session (per user)
+      const sessionKey = `spinWheelShown_${parsedUser?.id || 'unknown'}`;
+      const shownThisSession = sessionStorage.getItem(sessionKey);
       if (shownThisSession) {
         return; // Don't show again this session
       }
@@ -1107,8 +1108,8 @@ if (loginTimeStr) {
           setShowSpinWheel(true);
           setCanActuallySpin(data.canSpin);
           setSpinMessage(data.message || "");
-          // Mark as shown for this session
-          sessionStorage.setItem("spinWheelShown", "true");
+          // Mark as shown for this session (per user)
+          sessionStorage.setItem(sessionKey, "true");
         }
       } catch (err) {
         console.error("Error checking spin wheel:", err);
