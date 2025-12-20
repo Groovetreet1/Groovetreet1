@@ -2715,7 +2715,7 @@ if (loginTimeStr) {
                     )}
                   </div>
                 </section>
-              ) : (
+              ) : selectedPlatform === null ? (
                 <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
                   <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
@@ -2806,9 +2806,35 @@ if (loginTimeStr) {
                         ? vipExpiryText
                         : L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
                     </p>
+                    {/* Daily limit for FREE users only */}
+                    {!isUserVip && dailyLimit > 0 && (
+                      <div className="w-full mt-4 pt-4 border-t border-slate-600">
+                        <p className="text-xs text-slate-400 mb-2">Gains d'aujourd'hui</p>
+                        <p className="text-lg font-bold text-white mb-1">
+                          {(todayEarnings / 100).toFixed(2)} / {(dailyLimit / 100).toFixed(2)} MAD
+                        </p>
+                        <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-emerald-600"
+                            style={{ width: `${Math.min(100, (todayEarnings / dailyLimit) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {/* Trial days remaining for FREE users only */}
+                    {!isUserVip && !trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && (
+                      <div className="w-full mt-3 pt-3 border-t border-slate-600 flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-blue-400 text-xs">
+                          {(L.trialDaysRemaining || '{days} jour(s) restant(s)').replace('{days}', trialDaysRemaining)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </section>
-              )}
+              ) : null}
               {user.role !== "admin" && selectedPlatform === null && (
                 <section className="mb-8 px-4">
                   {/* Trial Expired Banner */}
@@ -2827,28 +2853,6 @@ if (loginTimeStr) {
                         <button
                           onClick={() => setShowVipModal(true)}
                           className="flex-shrink-0 px-4 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          {L.upgradeVip || 'Passer VIP'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Trial Days Remaining Banner */}
-                  {!trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && user?.vipLevel === 'FREE' && (
-                    <div className="mb-6 p-3 bg-gradient-to-r from-blue-600/80 to-indigo-600/80 rounded-xl border border-blue-400/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="text-white text-sm">
-                            {(L.trialDaysRemaining || '{days} jour(s) restant(s)').replace('{days}', trialDaysRemaining)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => setShowVipModal(true)}
-                          className="text-xs px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
                         >
                           {L.upgradeVip || 'Passer VIP'}
                         </button>

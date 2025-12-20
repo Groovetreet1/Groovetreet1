@@ -957,13 +957,30 @@ app.get('/api/user/daily-earnings', authMiddleware, async (req, res) => {
     try {
       // Récupérer le daily_rate de l'utilisateur
       const [userRows] = await pool.execute(
-        "SELECT daily_rate_cents, vip_level FROM users WHERE id = ? LIMIT 1",
+        "SELECT daily_rate_cents, vip_level, created_at FROM users WHERE id = ? LIMIT 1",
         [userId]
       );
       
       if (userRows && userRows.length > 0) {
         const user = userRows[0];
-        dailyLimitCents = user.daily_rate_cents || 0;
+        
+        // Pour les utilisateurs FREE en période d'essai, limite de 7 MAD/jour
+        if (user.vip_level === 'FREE') {
+          const createdAt = new Date(user.created_at);
+          const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+          const elapsed = Date.now() - createdAt.getTime();
+          
+          if (elapsed < threeDaysMs) {
+            // En période d'essai: limite de 7 MAD (700 cents)
+            dailyLimitCents = 700;
+          } else {
+            // Période d'essai expirée: pas de limite (ils ne peuvent plus accéder)
+            dailyLimitCents = 0;
+          }
+        } else {
+          // Utilisateurs VIP: utiliser leur daily_rate_cents
+          dailyLimitCents = user.daily_rate_cents || 0;
+        }
       }
     } catch (dbError) {
       // Si la colonne daily_rate_cents n'existe pas encore, retourner 0
@@ -1762,12 +1779,30 @@ app.post(
 
       // Vérifier la limite quotidienne avant de permettre la complétion
       const [userInfo] = await pool.execute(
-        "SELECT daily_rate_cents FROM users WHERE id = ? LIMIT 1",
+        "SELECT daily_rate_cents, vip_level, created_at FROM users WHERE id = ? LIMIT 1",
         [userId]
       );
-      if (userInfo.length > 0 && userInfo[0].daily_rate_cents > 0) {
+      
+      let dailyLimit = 0;
+      if (userInfo.length > 0) {
+        const userRow = userInfo[0];
+        
+        // Pour les utilisateurs FREE en période d'essai, limite de 7 MAD (700 cents)
+        if (userRow.vip_level === 'FREE') {
+          const createdAt = new Date(userRow.created_at);
+          const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+          const elapsed = Date.now() - createdAt.getTime();
+          
+          if (elapsed < threeDaysMs) {
+            dailyLimit = 700; // 7 MAD pour FREE en essai
+          }
+        } else {
+          dailyLimit = userRow.daily_rate_cents || 0;
+        }
+      }
+      
+      if (dailyLimit > 0) {
         const todayEarnings = await getTodayEarnings(userId);
-        const dailyLimit = userInfo[0].daily_rate_cents;
         
         // Si l'utilisateur a déjà atteint ou dépassé sa limite
         if (todayEarnings >= dailyLimit) {
@@ -1998,6 +2033,30 @@ app.post("/api/rate-store/complete", authMiddleware, async (req, res) => {
           message: "Votre période d'essai de 3 jours est terminée. Veuillez passer au VIP pour continuer.",
           trialExpired: true
         });
+      }
+      
+      // Vérifier la limite quotidienne pour les utilisateurs FREE en essai (7 MAD/jour)
+      if (trialRows[0].vip_level === "FREE") {
+        const elapsed = Date.now() - createdAt.getTime();
+        if (elapsed < threeDaysMs) {
+          const dailyLimit = 700; // 7 MAD pour FREE en essai
+          const todayEarnings = await getTodayEarnings(userId);
+          const rewardCentsInt = parseInt(rewardCents, 10) || 0;
+          
+          if (todayEarnings >= dailyLimit) {
+            return res.status(403).json({ 
+              message: "Vous avez atteint votre limite de gains quotidiens (7 MAD). Revenez demain!",
+              dailyLimitReached: true
+            });
+          }
+          
+          if (todayEarnings + rewardCentsInt > dailyLimit) {
+            return res.status(403).json({ 
+              message: `Cette tâche vous ferait dépasser votre limite quotidienne. Il vous reste ${((dailyLimit - todayEarnings) / 100).toFixed(2)} MAD à gagner aujourd'hui.`,
+              dailyLimitReached: true
+            });
+          }
+        }
       }
     }
     
