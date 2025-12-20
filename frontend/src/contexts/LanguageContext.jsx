@@ -186,6 +186,39 @@ export const translations = {
     // Language
     langFr: "🇫🇷 Français",
     langAr: "🇲🇦 العربية",
+    
+    // Rate Stores
+    rateStores: "Rate Stores",
+    rateStoresDesc: "Noter les produits des magasins",
+    rateStoresTitle: "Rate Stores - Noter les produits",
+    chooseStore: "Choisissez un magasin pour noter ses produits :",
+    chooseStoreRemaining: "Choisissez un magasin pour noter ses produits ({count} restants) :",
+    changeStore: "Changer de magasin",
+    rateProductFirst: "Veuillez d'abord noter ce produit (1-5 étoiles).",
+    taskValidated: "Tâche validée ! +{reward} MAD",
+    validated: "Validé",
+    validateTask: "Valider la tâche (+{reward} MAD)",
+    validating: "Validation...",
+    commentPlaceholder: "Votre commentaire (optionnel)...",
+    allStoresCompleted: "Tous les magasins notés !",
+    allStoresCompletedHint: "Passez au VIP pour noter plus de produits chaque jour.",
+    
+    // Trial Period
+    trialExpired: "Période d'essai terminée !",
+    trialExpiredDesc: "Votre essai gratuit de 3 jours est terminé. Passez au VIP pour continuer à gagner de l'argent.",
+    trialDaysRemaining: "{days} jour(s) restant(s) dans votre essai gratuit",
+    trialEnded: "Période d'essai terminée",
+    upgradeVip: "Passer VIP",
+    
+    // Daily Limit
+    dailyLimitReached: "Limite quotidienne atteinte !",
+    dailyLimitEarned: "Vous avez gagné {amount} MAD aujourd'hui.",
+    comeBackTomorrow: "Revenez demain pour continuer à gagner !",
+    limitReached: "Limite atteinte",
+    limited: "Limité",
+    ended: "Terminé",
+    active: "Actif",
+    returnBtn: "Retour",
   },
   ar: {
     // Common
@@ -341,6 +374,39 @@ export const translations = {
     // Language
     langFr: "🇫🇷 الفرنسية",
     langAr: "🇲🇦 العربية",
+    
+    // Rate Stores
+    rateStores: "Rate Stores",
+    rateStoresDesc: "قيّم المنتوجات ديال الماغازانات",
+    rateStoresTitle: "Rate Stores - قيّم المنتوجات",
+    chooseStore: "ختار ماغازان باش تقيّم المنتوجات ديالو :",
+    chooseStoreRemaining: "ختار ماغازان باش تقيّم المنتوجات ديالو ({count} باقيين) :",
+    changeStore: "بدل الماغازان",
+    rateProductFirst: "عافاك قيّم هاد المنتوج أولا (1-5 نجوم).",
+    taskValidated: "التاسك تصادقات ! +{reward} MAD",
+    validated: "تصادق",
+    validateTask: "صادق على التاسك (+{reward} MAD)",
+    validating: "كنصادق...",
+    commentPlaceholder: "التعليق ديالك (اختياري)...",
+    allStoresCompleted: "كاع الماغازانات تقيّمو !",
+    allStoresCompletedHint: "دير VIP باش تقيّم منتوجات أكثر كل يوم.",
+    
+    // Trial Period
+    trialExpired: "فترة التجربة سالات !",
+    trialExpiredDesc: "التجربة المجانية ديال 3 أيام سالات. دير VIP باش تكمل تربح الفلوس.",
+    trialDaysRemaining: "{days} يوم باقي ف التجربة المجانية ديالك",
+    trialEnded: "فترة التجربة سالات",
+    upgradeVip: "دير VIP",
+    
+    // Daily Limit
+    dailyLimitReached: "الليميت ديال اليوم وصلات !",
+    dailyLimitEarned: "ربحتي {amount} MAD اليوم.",
+    comeBackTomorrow: "رجع غدا باش تكمل تربح !",
+    limitReached: "الليميت وصلات",
+    limited: "محدود",
+    ended: "سالات",
+    active: "نشيط",
+    returnBtn: "رجوع",
   },
 };
 
