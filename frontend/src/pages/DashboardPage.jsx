@@ -2987,8 +2987,14 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-red-600/80 to-red-800/80 hover:from-red-600 hover:to-red-800 rounded-xl p-4 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <span className="text-red-600 font-bold text-lg">M</span>
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                              <svg className="w-10 h-10" viewBox="0 0 100 100">
+                                <rect x="10" y="30" width="80" height="50" rx="5" fill="#DC2626"/>
+                                <rect x="20" y="40" width="25" height="30" rx="3" fill="#FEF2F2"/>
+                                <rect x="55" y="40" width="25" height="30" rx="3" fill="#FEF2F2"/>
+                                <path d="M30 20 L50 10 L70 20" stroke="#DC2626" strokeWidth="6" fill="none" strokeLinecap="round"/>
+                                <circle cx="50" cy="85" r="6" fill="#991B1B"/>
+                              </svg>
                             </div>
                             <span className="text-white font-semibold text-sm">Marjane</span>
                           </div>
@@ -3000,8 +3006,15 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-blue-600/80 to-blue-800/80 hover:from-blue-600 hover:to-blue-800 rounded-xl p-4 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-bold text-lg">C</span>
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                              <svg className="w-10 h-10" viewBox="0 0 100 100">
+                                <path d="M50 10 L90 50 L50 90 L10 50 Z" fill="#2563EB"/>
+                                <path d="M50 25 L75 50 L50 75 L25 50 Z" fill="white"/>
+                                <path d="M35 45 L50 35 L50 50 Z" fill="#DC2626"/>
+                                <path d="M65 45 L50 35 L50 50 Z" fill="#2563EB"/>
+                                <path d="M35 55 L50 65 L50 50 Z" fill="#2563EB"/>
+                                <path d="M65 55 L50 65 L50 50 Z" fill="#DC2626"/>
+                              </svg>
                             </div>
                             <span className="text-white font-semibold text-sm">Carrefour</span>
                           </div>
@@ -3013,8 +3026,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-500 hover:to-orange-700 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <span className="text-orange-600 font-bold text-lg">J</span>
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                              <svg className="w-10 h-10" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" fill="#F97316"/>
+                                <path d="M35 35 L35 70 L50 55 L65 70 L65 35" stroke="white" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="50" cy="28" r="5" fill="white"/>
+                              </svg>
                             </div>
                             <span className="text-white font-semibold text-sm">Jumia Maroc</span>
                           </div>
@@ -3026,8 +3043,13 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-yellow-500/80 to-yellow-700/80 hover:from-yellow-500 hover:to-yellow-700 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <span className="text-yellow-600 font-bold text-lg">E</span>
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                              <svg className="w-10 h-10" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" fill="#EAB308"/>
+                                <path d="M55 20 L35 50 L48 50 L43 80 L68 45 L52 45 L60 20 Z" fill="white"/>
+                                <circle cx="30" cy="75" r="4" fill="#CA8A04"/>
+                                <circle cx="70" cy="25" r="4" fill="#CA8A04"/>
+                              </svg>
                             </div>
                             <span className="text-white font-semibold text-sm">Electroplanet</span>
                           </div>
@@ -3039,8 +3061,15 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-green-600/80 to-green-800/80 hover:from-green-600 hover:to-green-800 rounded-xl p-4 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                              <span className="text-green-600 font-bold text-lg">S</span>
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                              <svg className="w-10 h-10" viewBox="0 0 100 100">
+                                <rect x="15" y="35" width="70" height="45" rx="8" fill="#16A34A"/>
+                                <path d="M25 35 L50 15 L75 35" stroke="#16A34A" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                                <rect x="40" y="50" width="20" height="30" rx="3" fill="#DCFCE7"/>
+                                <circle cx="50" cy="60" r="4" fill="#16A34A"/>
+                                <rect x="25" y="45" width="12" height="15" rx="2" fill="#DCFCE7"/>
+                                <rect x="63" y="45" width="12" height="15" rx="2" fill="#DCFCE7"/>
+                              </svg>
                             </div>
                             <span className="text-white font-semibold text-sm">Supeco</span>
                           </div>
