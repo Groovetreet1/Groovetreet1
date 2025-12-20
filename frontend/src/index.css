@@ -181,7 +181,7 @@ body {
    MODE PORTRAIT - Mobile-first layout
    ======================================== */
 
-/* Container principal qui simule un téléphone sur desktop */
+/* Container principal */
 .mobile-frame {
   width: 100%;
   min-height: 100vh;
@@ -191,20 +191,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Sur desktop: largeur max de téléphone, centré avec fond différent */
+/* Sur desktop: plein écran, pas de contrainte de largeur */
 @media (min-width: 768px) {
   body {
-    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%);
+    background: #0f172a;
   }
   
   .mobile-frame {
-    max-width: 430px;
+    max-width: 100%;
     min-height: 100vh;
-    box-shadow: 0 0 80px rgba(99, 102, 241, 0.15),
-                0 0 40px rgba(139, 92, 246, 0.1),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
 
