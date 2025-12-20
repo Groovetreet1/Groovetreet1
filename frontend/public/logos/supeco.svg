@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="supecoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22C55E"/>
+      <stop offset="100%" style="stop-color:#16A34A"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="20" fill="url(#supecoGrad)"/>
+  <!-- Shopping cart icon -->
+  <circle cx="75" cy="155" r="12" fill="white"/>
+  <circle cx="140" cy="155" r="12" fill="white"/>
+  <path d="M40 50 L55 50 L80 120 L145 120 L160 70 L70 70" stroke="white" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="100" y="185" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle" font-weight="bold">SUPECO</text>
+</svg>

@@ -2987,14 +2987,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-red-600/80 to-red-800/80 hover:from-red-600 hover:to-red-800 rounded-xl p-4 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                               <img 
-                                src="https://upload.wikimedia.org/wikipedia/fr/thumb/e/e4/Marjane_logo.svg/200px-Marjane_logo.svg.png" 
+                                src="/logos/marjane.svg" 
                                 alt="Marjane" 
                                 className="w-full h-full object-contain"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
-                              <span className="text-red-600 font-bold text-xl hidden items-center justify-center w-full h-full">M</span>
                             </div>
                             <span className="text-white font-semibold text-sm">Marjane</span>
                           </div>
@@ -3006,14 +3004,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-blue-600/80 to-blue-800/80 hover:from-blue-600 hover:to-blue-800 rounded-xl p-4 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                               <img 
-                                src="https://upload.wikimedia.org/wikipedia/fr/thumb/3/3b/Logo_Carrefour.svg/200px-Logo_Carrefour.svg.png" 
+                                src="/logos/carrefour.svg" 
                                 alt="Carrefour" 
                                 className="w-full h-full object-contain"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
-                              <span className="text-blue-600 font-bold text-xl hidden items-center justify-center w-full h-full">C</span>
                             </div>
                             <span className="text-white font-semibold text-sm">Carrefour</span>
                           </div>
@@ -3025,14 +3021,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-500 hover:to-orange-700 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                               <img 
-                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Jumia_logo.svg/200px-Jumia_logo.svg.png" 
+                                src="/logos/jumia.svg" 
                                 alt="Jumia" 
                                 className="w-full h-full object-contain"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
-                              <span className="text-orange-600 font-bold text-xl hidden items-center justify-center w-full h-full">J</span>
                             </div>
                             <span className="text-white font-semibold text-sm">Jumia Maroc</span>
                           </div>
@@ -3044,14 +3038,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-yellow-500/80 to-yellow-700/80 hover:from-yellow-500 hover:to-yellow-700 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                               <img 
-                                src="https://www.electroplanet.ma/media/logo/stores/1/logo_electroplanet.png" 
+                                src="/logos/electroplanet.svg" 
                                 alt="Electroplanet" 
                                 className="w-full h-full object-contain"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
-                              <span className="text-yellow-600 font-bold text-xl hidden items-center justify-center w-full h-full">E</span>
                             </div>
                             <span className="text-white font-semibold text-sm">Electroplanet</span>
                           </div>
@@ -3063,14 +3055,12 @@ if (loginTimeStr) {
                           className="group bg-gradient-to-br from-green-600/80 to-green-800/80 hover:from-green-600 hover:to-green-800 rounded-xl p-4 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105"
                         >
                           <div className="flex flex-col items-center space-y-2">
-                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-1">
+                            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
                               <img 
-                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Supeco_logo.svg/200px-Supeco_logo.svg.png" 
+                                src="/logos/supeco.svg" 
                                 alt="Supeco" 
                                 className="w-full h-full object-contain"
-                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                               />
-                              <span className="text-green-600 font-bold text-xl hidden items-center justify-center w-full h-full">S</span>
                             </div>
                             <span className="text-white font-semibold text-sm">Supeco</span>
                           </div>

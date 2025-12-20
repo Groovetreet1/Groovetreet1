@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Carrefour-style logo -->
+  <rect width="200" height="200" fill="white"/>
+  <!-- Left arrow (blue) -->
+  <path d="M20 100 L80 50 L80 80 L100 80 L100 120 L80 120 L80 150 Z" fill="#004E9A"/>
+  <!-- Right arrow (red) -->
+  <path d="M180 100 L120 50 L120 80 L100 80 L100 120 L120 120 L120 150 Z" fill="#E31E26"/>
+  <text x="100" y="185" font-family="Arial, sans-serif" font-size="18" fill="#004E9A" text-anchor="middle" font-weight="bold">CARREFOUR</text>
+</svg>
