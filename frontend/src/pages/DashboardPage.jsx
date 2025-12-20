@@ -2781,46 +2781,65 @@ if (loginTimeStr) {
                   </div>
 
                   <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-                    {/* YouTube Card */}
-                    <button
-                      onClick={() => {
-                        setSelectedPlatform('youtube');
-                        setLoadingTasks(true);
-                        const token = localStorage.getItem("token");
-                        if (token) {
-                          const fetchTasksForPlatform = async () => {
-                            try {
-                              const res = await fetch(buildApiUrl('/api/tasks'), {
-                                headers: { Authorization: `Bearer ${token}` },
-                              });
-                              const data = await res.json();
-                              if (res.ok && Array.isArray(data)) {
-                                setTasks(data);
-                              }
-                            } catch (err) {
-                              console.error(err);
-                            } finally {
-                              setLoadingTasks(false);
-                            }
-                          };
-                          fetchTasksForPlatform();
-                        }
-                      }}
-                      className="group relative bg-gradient-to-br from-red-500/90 to-red-700/90 hover:from-red-500 hover:to-red-700 rounded-2xl p-8 border border-red-400/20 hover:border-red-400/40 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-red-500/50"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <svg className="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-white mb-1">YouTube</h3>
-                          <p className="text-xs text-white/80">Regarder des vidéos YouTube</p>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
-                          <span className="text-[10px] font-semibold text-white">Actif</span>
+                    {/* YouTube Card - ACTIVE (or disabled if limit reached) */}
+                    {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                      <div
+                        className="group relative bg-gradient-to-br from-red-500/30 to-red-700/30 rounded-2xl p-8 border border-red-400/20 opacity-60 cursor-not-allowed"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <svg className="w-16 h-16 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-white/70 mb-1">YouTube</h3>
+                            <p className="text-xs text-white/50">Limite atteinte</p>
+                          </div>
+                          <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
+                            <span className="text-[10px] font-semibold text-white">Limité</span>
+                          </div>
                         </div>
                       </div>
-                    </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedPlatform('youtube');
+                          setLoadingTasks(true);
+                          const token = localStorage.getItem("token");
+                          if (token) {
+                            const fetchTasksForPlatform = async () => {
+                              try {
+                                const res = await fetch(buildApiUrl('/api/tasks'), {
+                                  headers: { Authorization: `Bearer ${token}` },
+                                });
+                                const data = await res.json();
+                                if (res.ok && Array.isArray(data)) {
+                                  setTasks(data);
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setLoadingTasks(false);
+                              }
+                            };
+                            fetchTasksForPlatform();
+                          }
+                        }}
+                        className="group relative bg-gradient-to-br from-red-500/90 to-red-700/90 hover:from-red-500 hover:to-red-700 rounded-2xl p-8 border border-red-400/20 hover:border-red-400/40 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-red-500/50"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <svg className="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-white mb-1">YouTube</h3>
+                            <p className="text-xs text-white/80">Regarder des vidéos YouTube</p>
+                          </div>
+                          <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
+                            <span className="text-[10px] font-semibold text-white">Actif</span>
+                          </div>
+                        </div>
+                      </button>
+                    )}
 
                     {/* TikTok Card */}
                     <div
@@ -3221,37 +3240,53 @@ if (loginTimeStr) {
                         {selectedPlatform} - {L.tasksSectionTitle}
                       </h2>
                     </div>
-                    <button
-                      className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800"
-                      onClick={() => {
-                        setLoadingTasks(true);
-                        const token = localStorage.getItem("token");
-                        if (token) {
-                          const fetchTasksForPlatform = async () => {
-                            try {
-                              const endpoint = selectedPlatform === 'youtube' ? '/api/tasks' : `/api/tasks/${selectedPlatform}`;
-                              const res = await fetch(buildApiUrl(endpoint), {
-                                headers: { Authorization: `Bearer ${token}` },
-                              });
-                              const data = await res.json();
-                              if (res.ok && Array.isArray(data)) {
-                                setTasks(data);
+                    {!(dailyLimit > 0 && todayEarnings >= dailyLimit) && (
+                      <button
+                        className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800"
+                        onClick={() => {
+                          setLoadingTasks(true);
+                          const token = localStorage.getItem("token");
+                          if (token) {
+                            const fetchTasksForPlatform = async () => {
+                              try {
+                                const endpoint = selectedPlatform === 'youtube' ? '/api/tasks' : `/api/tasks/${selectedPlatform}`;
+                                const res = await fetch(buildApiUrl(endpoint), {
+                                  headers: { Authorization: `Bearer ${token}` },
+                                });
+                                const data = await res.json();
+                                if (res.ok && Array.isArray(data)) {
+                                  setTasks(data);
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setLoadingTasks(false);
                               }
-                            } catch (err) {
-                              console.error(err);
-                            } finally {
-                              setLoadingTasks(false);
-                            }
-                          };
-                          fetchTasksForPlatform();
-                        }
-                      }}
-                    >
-                      {L.tasksRefresh}
-                    </button>
+                            };
+                            fetchTasksForPlatform();
+                          }
+                        }}
+                      >
+                        {L.tasksRefresh}
+                      </button>
+                    )}
                   </div>
 
-                  {loadingTasks ? (
+                  {/* Check if daily limit reached */}
+                  {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                    <div className="bg-amber-900/30 border border-amber-500/40 rounded-xl p-6 text-center">
+                      <svg className="w-16 h-16 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <h3 className="text-lg font-bold text-amber-300 mb-2">Limite quotidienne atteinte !</h3>
+                      <p className="text-sm text-slate-300 mb-2">
+                        Vous avez gagné <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> aujourd'hui.
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        Revenez demain pour continuer à gagner !
+                      </p>
+                    </div>
+                  ) : loadingTasks ? (
                     <p className="text-xs text-slate-400">
                       {L.tasksLoading}
                     </p>
