@@ -278,10 +278,10 @@ export default function DashboardPage() {
     return shuffled.slice(0, 3);
   };
 
-  // Generate random reward between 0.5 and 3 MAD
+  // Generate random reward between 0.5 and 2 MAD
   const generateRandomReward = () => {
     const min = 0.5;
-    const max = 3;
+    const max = 2;
     return (Math.random() * (max - min) + min).toFixed(2);
   };
 

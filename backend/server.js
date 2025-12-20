@@ -1964,9 +1964,9 @@ app.post("/api/rate-store/complete", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "La note doit être entre 1 et 5." });
     }
     
-    // Validate reward is between 50 and 300 cents (0.5 - 3 MAD)
+    // Validate reward is between 50 and 200 cents (0.5 - 2 MAD)
     const rewardCentsInt = parseInt(rewardCents, 10);
-    if (rewardCentsInt < 50 || rewardCentsInt > 300) {
+    if (rewardCentsInt < 50 || rewardCentsInt > 200) {
       return res.status(400).json({ message: "Récompense invalide." });
     }
     
