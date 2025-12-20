@@ -400,7 +400,7 @@ export default function DashboardPage() {
 
       // Show success toast
       const reward = productRewards[productId];
-      setToast({ type: 'success', message: L.taskValidated.replace('{reward}', reward) });
+      setToast({ type: 'success', message: (L.taskValidated || 'Tâche validée ! +{reward} MAD').replace('{reward}', reward) });
       setTimeout(() => setToast(null), 3000);
       
     } catch (err) {
@@ -2843,7 +2843,7 @@ if (loginTimeStr) {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="text-white text-sm">
-                            {L.trialDaysRemaining.replace('{days}', trialDaysRemaining)}
+                            {(L.trialDaysRemaining || '{days} jour(s) restant(s)').replace('{days}', trialDaysRemaining)}
                           </span>
                         </div>
                         <button
@@ -3052,7 +3052,7 @@ if (loginTimeStr) {
                       </svg>
                       <h3 className="text-lg font-bold text-amber-300 mb-2">{L.dailyLimitReached}</h3>
                       <p className="text-sm text-slate-300 mb-2">
-                        {L.dailyLimitEarned.replace('{amount}', (todayEarnings / 100).toFixed(2))}
+                        {(L.dailyLimitEarned || 'Vous avez gagné {amount} MAD').replace('{amount}', (todayEarnings / 100).toFixed(2))}
                       </p>
                       <p className="text-xs text-slate-400">
                         {L.comeBackTomorrow}
@@ -3064,7 +3064,7 @@ if (loginTimeStr) {
                       <p className="text-sm text-slate-300 mb-4">
                         {user?.vipLevel === 'VIP' 
                           ? L.chooseStore
-                          : L.chooseStoreRemaining.replace('{count}', 5 - completedStores.length)
+                          : (L.chooseStoreRemaining || 'Choisissez un magasin ({count} restants)').replace('{count}', 5 - completedStores.length)
                         }
                       </p>
                       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -3360,7 +3360,7 @@ if (loginTimeStr) {
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                       </svg>
-                                      {L.validateTask.replace('{reward}', reward)}
+                                      {(L.validateTask || 'Valider (+{reward} MAD)').replace('{reward}', reward)}
                                     </>
                                   )}
                                 </button>
@@ -3468,7 +3468,7 @@ if (loginTimeStr) {
                       </svg>
                       <h3 className="text-lg font-bold text-amber-300 mb-2">{L.dailyLimitReached}</h3>
                       <p className="text-sm text-slate-300 mb-2">
-                        {L.dailyLimitEarned.replace('{amount}', (todayEarnings / 100).toFixed(2))}
+                        {(L.dailyLimitEarned || 'Vous avez gagné {amount} MAD').replace('{amount}', (todayEarnings / 100).toFixed(2))}
                       </p>
                       <p className="text-xs text-slate-400">
                         {L.comeBackTomorrow}
