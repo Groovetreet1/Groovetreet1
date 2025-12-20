@@ -899,6 +899,31 @@ async function authMiddleware(req, res, next) {
 // Retourne les infos utilisateur à jour (balance incluse)
 app.get('/api/user/me', authMiddleware, async (req, res) => {
   try {
+    // Check if FREE user trial (3 days) has expired
+    let trialExpired = false;
+    let trialDaysRemaining = null;
+    try {
+      const [trialRows] = await pool.execute(
+        "SELECT created_at, vip_level FROM users WHERE id = ? LIMIT 1",
+        [req.user.id]
+      );
+      if (trialRows && trialRows[0]) {
+        const createdAt = new Date(trialRows[0].created_at);
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        const elapsed = Date.now() - createdAt.getTime();
+        if (trialRows[0].vip_level === "FREE") {
+          if (elapsed >= threeDaysMs) {
+            trialExpired = true;
+            trialDaysRemaining = 0;
+          } else {
+            trialDaysRemaining = Math.ceil((threeDaysMs - elapsed) / (24 * 60 * 60 * 1000));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Could not check trial expiration:", e);
+    }
+
     // authMiddleware already fetched the fresh user row and placed it on req.user
     const safeUser = {
       id: req.user.id,
@@ -912,6 +937,8 @@ app.get('/api/user/me', authMiddleware, async (req, res) => {
       dailyRateCents: req.user.daily_rate_cents || 0,
       inviteCode: req.user.inviteCode,
       invitedByUserId: req.user.invitedByUserId || null,
+      trialExpired,
+      trialDaysRemaining,
     };
     return res.json({ user: safeUser });
   } catch (err) {
@@ -1954,6 +1981,25 @@ app.post("/api/rate-store/complete", authMiddleware, async (req, res) => {
     const { storeName, productId, productName, rating, comment, rewardCents } = req.body;
     
     console.log(`⭐ [${requestId}] userId: ${userId}, store: ${storeName}, product: ${productId}, rating: ${rating}, reward: ${rewardCents}`);
+    
+    // Check if FREE user trial (3 days) has expired
+    const [trialRows] = await pool.execute(
+      "SELECT created_at, vip_level FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    if (trialRows && trialRows[0]) {
+      const createdAt = new Date(trialRows[0].created_at);
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+      if (
+        trialRows[0].vip_level === "FREE" &&
+        Date.now() - createdAt.getTime() >= threeDaysMs
+      ) {
+        return res.status(403).json({ 
+          message: "Votre période d'essai de 3 jours est terminée. Veuillez passer au VIP pour continuer.",
+          trialExpired: true
+        });
+      }
+    }
     
     // Validate inputs
     if (!storeName || !productId || !productName || !rating || !rewardCents) {

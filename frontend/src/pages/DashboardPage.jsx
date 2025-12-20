@@ -200,6 +200,10 @@ export default function DashboardPage() {
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(0);
 
+  // Trial period tracking (3 days for FREE users)
+  const [trialExpired, setTrialExpired] = useState(false);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(null);
+
   // Protection contre les appels multiples de handleCompleteTask (useRef = synchrone)
   const isCompletingTaskRef = useRef(false);
 
@@ -1033,6 +1037,10 @@ if (loginTimeStr) {
         if (res.ok) {
           const { user: fresh } = await res.json();
           if (fresh) {
+            // Update trial status
+            setTrialExpired(fresh.trialExpired || false);
+            setTrialDaysRemaining(fresh.trialDaysRemaining);
+            
             setUser((prev) => {
               const updated = {
                 ...prev,
@@ -1155,6 +1163,11 @@ if (loginTimeStr) {
           if (!res.ok) return;
           const { user: fresh } = await res.json();
           if (!fresh) return;
+          
+          // Update trial status
+          setTrialExpired(fresh.trialExpired || false);
+          setTrialDaysRemaining(fresh.trialDaysRemaining);
+          
           setUser((prev) => {
             if (!prev) return prev;
             // Update only if balance or VIP status/expiry changed
@@ -2774,6 +2787,51 @@ if (loginTimeStr) {
               )}
               {user.role !== "admin" && selectedPlatform === null && (
                 <section className="mb-8 px-4">
+                  {/* Trial Expired Banner */}
+                  {trialExpired && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-red-600/90 to-orange-600/90 rounded-xl border border-red-400/50 shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-white font-bold text-lg">Période d'essai terminée !</h3>
+                          <p className="text-white/90 text-sm">Votre essai gratuit de 3 jours est terminé. Passez au VIP pour continuer à gagner de l'argent.</p>
+                        </div>
+                        <button
+                          onClick={() => setShowVipModal(true)}
+                          className="flex-shrink-0 px-4 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          Passer VIP
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Trial Days Remaining Banner */}
+                  {!trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && user?.vipLevel === 'FREE' && (
+                    <div className="mb-6 p-3 bg-gradient-to-r from-blue-600/80 to-indigo-600/80 rounded-xl border border-blue-400/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-white text-sm">
+                            <span className="font-bold">{trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''}</span> restant{trialDaysRemaining > 1 ? 's' : ''} dans votre essai gratuit
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setShowVipModal(true)}
+                          className="text-xs px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
+                        >
+                          Passer VIP
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-center mb-6">
                     <h2 className="text-xl font-bold tracking-tight text-white">
                       Choisissez une plateforme
@@ -2781,8 +2839,8 @@ if (loginTimeStr) {
                   </div>
 
                   <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-                    {/* YouTube Card - ACTIVE (or disabled if limit reached) */}
-                    {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                    {/* YouTube Card - ACTIVE (or disabled if limit reached or trial expired) */}
+                    {(dailyLimit > 0 && todayEarnings >= dailyLimit) || trialExpired ? (
                       <div
                         className="group relative bg-gradient-to-br from-red-500/30 to-red-700/30 rounded-2xl p-8 border border-red-400/20 opacity-60 cursor-not-allowed"
                       >
@@ -2792,10 +2850,10 @@ if (loginTimeStr) {
                           </svg>
                           <div className="text-center">
                             <h3 className="text-xl font-bold text-white/70 mb-1">YouTube</h3>
-                            <p className="text-xs text-white/50">Limite atteinte</p>
+                            <p className="text-xs text-white/50">{trialExpired ? "Période d'essai terminée" : "Limite atteinte"}</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">Limité</span>
+                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "Essai fini" : "Limité"}</span>
                           </div>
                         </div>
                       </div>
@@ -2895,8 +2953,8 @@ if (loginTimeStr) {
                       </div>
                     </div>
 
-                    {/* Rate Stores Card - ACTIVE (or disabled if limit reached) */}
-                    {dailyLimit > 0 && todayEarnings >= dailyLimit ? (
+                    {/* Rate Stores Card - ACTIVE (or disabled if limit reached or trial expired) */}
+                    {(dailyLimit > 0 && todayEarnings >= dailyLimit) || trialExpired ? (
                       <div
                         className="group relative bg-gradient-to-br from-emerald-500/30 to-teal-700/30 rounded-2xl p-8 border border-emerald-400/20 opacity-60 cursor-not-allowed"
                       >
@@ -2906,10 +2964,10 @@ if (loginTimeStr) {
                           </svg>
                           <div className="text-center">
                             <h3 className="text-xl font-bold text-white/70 mb-1">Rate Stores</h3>
-                            <p className="text-xs text-white/50">Limite atteinte</p>
+                            <p className="text-xs text-white/50">{trialExpired ? "Période d'essai terminée" : "Limite atteinte"}</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">Limité</span>
+                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "Essai fini" : "Limité"}</span>
                           </div>
                         </div>
                       </div>
