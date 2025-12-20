@@ -2816,7 +2816,7 @@ if (loginTimeStr) {
                   </div>
                 </section>
               ) : selectedPlatform === null ? (
-                <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
+                <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
                   <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <p className="text-xs text-slate-400">{L.overviewBalanceTitle}</p>
