@@ -3916,15 +3916,7 @@ app.get('/api/spin-wheel/can-spin', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const mondayOfWeek = getMondayOfWeek();
     const mondayStr = mondayOfWeek.toISOString().split('T')[0];
-    
-    // Check if it's Monday
-    if (!isMondayGMT1()) {
-      return res.json({ 
-        canSpin: false, 
-        reason: 'not_monday',
-        message: 'La roue est disponible uniquement le lundi!'
-      });
-    }
+    const isMonday = isMondayGMT1();
     
     // Check if already spun this week
     const [rows] = await pool.execute(
@@ -3932,17 +3924,20 @@ app.get('/api/spin-wheel/can-spin', authMiddleware, async (req, res) => {
       [userId, mondayStr]
     );
     
-    if (rows.length > 0) {
-      return res.json({ 
-        canSpin: false, 
-        reason: 'already_spun',
-        message: 'Vous avez déjà tourné la roue cette semaine!',
-        lastResult: rows[0].result,
-        lastReward: rows[0].reward_cents
-      });
-    }
+    const alreadySpun = rows.length > 0;
     
-    return res.json({ canSpin: true });
+    // Always show popup, but indicate if can actually spin
+    return res.json({ 
+      showPopup: !alreadySpun, // Show popup if haven't spun this week
+      canSpin: isMonday && !alreadySpun, // Can only spin on Monday and if not already spun
+      isMonday,
+      alreadySpun,
+      message: alreadySpun 
+        ? 'Vous avez déjà tourné la roue cette semaine!'
+        : (!isMonday ? 'Revenez lundi pour tourner la roue!' : null),
+      lastResult: alreadySpun ? rows[0].result : null,
+      lastReward: alreadySpun ? rows[0].reward_cents : null
+    });
   } catch (err) {
     console.error('Error in /api/spin-wheel/can-spin:', err);
     return res.status(500).json({ message: 'Erreur serveur.' });

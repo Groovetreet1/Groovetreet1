@@ -209,6 +209,8 @@ export default function DashboardPage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinResult, setSpinResult] = useState(null);
   const [wheelRotation, setWheelRotation] = useState(0);
+  const [canActuallySpin, setCanActuallySpin] = useState(false);
+  const [spinMessage, setSpinMessage] = useState("");
 
   // Protection contre les appels multiples de handleCompleteTask (useRef = synchrone)
   const isCompletingTaskRef = useRef(false);
@@ -1087,7 +1089,7 @@ if (loginTimeStr) {
       }
     };
 
-    // Check if user can spin the weekly wheel (Monday only)
+    // Check if user can spin the weekly wheel
     const checkSpinWheel = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -1095,8 +1097,10 @@ if (loginTimeStr) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (res.ok && data.canSpin) {
+        if (res.ok && data.showPopup) {
           setShowSpinWheel(true);
+          setCanActuallySpin(data.canSpin);
+          setSpinMessage(data.message || "");
         }
       } catch (err) {
         console.error("Error checking spin wheel:", err);
@@ -4640,16 +4644,38 @@ if (loginTimeStr) {
               </div>
             )}
             
+            {/* Message when not Monday */}
+            {!canActuallySpin && !spinResult && spinMessage && (
+              <div className="text-center mb-4 p-4 rounded-xl bg-amber-900/50 border border-amber-500/50">
+                <p className="text-2xl mb-2">⏰</p>
+                <p className="text-lg font-bold text-amber-300">{spinMessage}</p>
+                <p className="text-sm text-amber-200">La roue tourne uniquement le lundi!</p>
+              </div>
+            )}
+            
             {/* Buttons */}
             <div className="flex gap-3">
               {!spinResult ? (
-                <button
-                  onClick={handleSpin}
-                  disabled={isSpinning}
-                  className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${isSpinning ? 'bg-slate-600 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-purple-500/30'}`}
-                >
-                  {isSpinning ? 'Tirage en cours...' : '🎰 Tourner la roue!'}
-                </button>
+                canActuallySpin ? (
+                  <button
+                    onClick={handleSpin}
+                    disabled={isSpinning}
+                    className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${isSpinning ? 'bg-slate-600 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-purple-500/30'}`}
+                  >
+                    {isSpinning ? 'Tirage en cours...' : '🎰 Tourner la roue!'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowSpinWheel(false);
+                      setSpinResult(null);
+                      setWheelRotation(0);
+                    }}
+                    className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600"
+                  >
+                    Fermer
+                  </button>
+                )
               ) : (
                 <button
                   onClick={() => {
