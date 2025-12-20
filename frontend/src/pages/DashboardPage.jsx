@@ -2964,6 +2964,24 @@ if (loginTimeStr) {
                       </button>
                     )}
 
+                    {/* Google Ads Card */}
+                    <div
+                      className="group relative bg-gradient-to-br from-blue-500/30 via-green-500/30 to-yellow-500/30 rounded-2xl p-6 border border-blue-400/20 opacity-60 cursor-not-allowed"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <svg className="w-16 h-16 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
+                        </svg>
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-white/70 mb-1">Google Ads</h3>
+                          <p className="text-xs text-white/50">Publicités Google à visionner</p>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-3 py-1">
+                          <span className="text-[10px] font-semibold text-white">Coming Soon</span>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* TikTok Card */}
                     <div
                       className="group relative bg-gradient-to-br from-gray-800/30 to-black/30 rounded-2xl p-6 border border-gray-600/20 opacity-60 cursor-not-allowed"
@@ -2993,24 +3011,6 @@ if (loginTimeStr) {
                         <div className="text-center">
                           <h3 className="text-xl font-bold text-white/70 mb-1">Instagram</h3>
                           <p className="text-xs text-white/50">Vidéos Instagram à visionner</p>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-3 py-1">
-                          <span className="text-[10px] font-semibold text-white">Coming Soon</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Google Ads Card */}
-                    <div
-                      className="group relative bg-gradient-to-br from-blue-500/30 via-green-500/30 to-yellow-500/30 rounded-2xl p-6 border border-blue-400/20 opacity-60 cursor-not-allowed"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <svg className="w-16 h-16 text-white/50" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
-                        </svg>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-white/70 mb-1">Google Ads</h3>
-                          <p className="text-xs text-white/50">Publicités Google à visionner</p>
                         </div>
                         <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-3 py-1">
                           <span className="text-[10px] font-semibold text-white">Coming Soon</span>
