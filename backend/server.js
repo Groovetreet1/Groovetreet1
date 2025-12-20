@@ -484,13 +484,24 @@ async function getTodayEarnings(userId) {
   
   console.log(`💰 Résultat completed_social_tasks: total = ${socialRows[0]?.total || 0} cents`);
   
+  // Calculer les gains des tâches Rate Store
+  const [rateStoreRows] = await pool.execute(
+    `SELECT COALESCE(SUM(reward_cents), 0) as total, COUNT(*) as count
+     FROM rate_store_completions
+     WHERE user_id = ? AND created_at >= ? AND created_at < ?`,
+    [userId, todayStartStr, tomorrowStartStr]
+  );
+  
+  console.log(`💰 Résultat rate_store_completions: total = ${rateStoreRows[0]?.total || 0} cents, nombre = ${rateStoreRows[0]?.count || 0}`);
+  
   // Convertir explicitement en nombres pour éviter la concaténation de strings
   const taskTotal = parseInt(rows[0]?.total || 0, 10);
   const socialTotal = parseInt(socialRows[0]?.total || 0, 10);
+  const rateStoreTotal = parseInt(rateStoreRows[0]?.total || 0, 10);
   
-  console.log(`💰 DEBUG: taskTotal = ${taskTotal}, socialTotal = ${socialTotal}`);
+  console.log(`💰 DEBUG: taskTotal = ${taskTotal}, socialTotal = ${socialTotal}, rateStoreTotal = ${rateStoreTotal}`);
   
-  const totalEarnings = taskTotal + socialTotal;
+  const totalEarnings = taskTotal + socialTotal + rateStoreTotal;
   console.log(`💰 TOTAL FINAL: ${totalEarnings} cents (${totalEarnings / 100} MAD)`);
   console.log(`💰 ========== FIN getTodayEarnings ==========\n`);
   return totalEarnings;
@@ -1904,6 +1915,162 @@ app.get("/api/tasks/history", authMiddleware, async (req, res) => {
     return res
       .status(500)
       .json({ message: "Erreur serveur lors de la récupération de l'historique des tâches." });
+  }
+});
+
+// ========== RATE STORES ==========
+
+// Ensure rate_store_completions table exists
+async function ensureRateStoreTable() {
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS rate_store_completions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      store_name VARCHAR(50) NOT NULL,
+      product_id VARCHAR(50) NOT NULL,
+      product_name VARCHAR(255) NOT NULL,
+      rating INT NOT NULL,
+      comment TEXT,
+      reward_cents INT NOT NULL,
+      balance_before_cents INT NOT NULL,
+      balance_after_cents INT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_date DATE DEFAULT (CURDATE()),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_user_product_daily (user_id, product_id, created_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  console.log('✓ Table rate_store_completions vérifiée/créée');
+}
+ensureRateStoreTable().catch(console.error);
+
+// Complete a rate store task
+app.post("/api/rate-store/complete", authMiddleware, async (req, res) => {
+  const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  console.log(`\n⭐ [${requestId}] ========== DÉBUT POST /api/rate-store/complete ==========`);
+  
+  try {
+    const userId = req.user.id;
+    const { storeName, productId, productName, rating, comment, rewardCents } = req.body;
+    
+    console.log(`⭐ [${requestId}] userId: ${userId}, store: ${storeName}, product: ${productId}, rating: ${rating}, reward: ${rewardCents}`);
+    
+    // Validate inputs
+    if (!storeName || !productId || !productName || !rating || !rewardCents) {
+      return res.status(400).json({ message: "Données manquantes." });
+    }
+    
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "La note doit être entre 1 et 5." });
+    }
+    
+    // Validate reward is between 50 and 300 cents (0.5 - 3 MAD)
+    const rewardCentsInt = parseInt(rewardCents, 10);
+    if (rewardCentsInt < 50 || rewardCentsInt > 300) {
+      return res.status(400).json({ message: "Récompense invalide." });
+    }
+    
+    // Check if already completed today
+    const nowPlus1 = new Date(Date.now() + 1 * 60 * 60 * 1000);
+    const startUtcForGmtPlus1 = Date.UTC(
+      nowPlus1.getUTCFullYear(),
+      nowPlus1.getUTCMonth(),
+      nowPlus1.getUTCDate(),
+      0, 0, 0
+    ) - 1 * 60 * 60 * 1000;
+    const startDate = new Date(startUtcForGmtPlus1);
+    
+    const [already] = await pool.execute(
+      "SELECT id FROM rate_store_completions WHERE user_id = ? AND product_id = ? AND created_at >= ? LIMIT 1",
+      [userId, productId, startDate]
+    );
+    if (already.length > 0) {
+      return res.status(400).json({ message: "Produit déjà noté aujourd'hui." });
+    }
+    
+    // Transaction to update balance and record completion
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      
+      // Get current balance
+      const [userRows] = await conn.execute(
+        "SELECT balance_cents FROM users WHERE id = ? FOR UPDATE",
+        [userId]
+      );
+      if (userRows.length === 0) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+      
+      const balanceBefore = userRows[0].balance_cents;
+      const balanceAfter = balanceBefore + rewardCentsInt;
+      
+      // Update balance
+      await conn.execute(
+        "UPDATE users SET balance_cents = ? WHERE id = ?",
+        [balanceAfter, userId]
+      );
+      
+      // Record completion
+      await conn.execute(
+        `INSERT INTO rate_store_completions
+          (user_id, store_name, product_id, product_name, rating, comment, reward_cents, balance_before_cents, balance_after_cents)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, storeName, productId, productName, rating, comment || '', rewardCentsInt, balanceBefore, balanceAfter]
+      );
+      
+      await conn.commit();
+      console.log(`⭐ [${requestId}] ✅ Tâche complétée - reward: ${rewardCentsInt}, new balance: ${balanceAfter}`);
+      
+      return res.json({
+        message: "Tâche de notation complétée.",
+        reward_cents: rewardCentsInt,
+        new_balance_cents: balanceAfter,
+      });
+      
+    } catch (e) {
+      await conn.rollback().catch(() => {});
+      if (e && (e.code === 'ER_DUP_ENTRY' || e.errno === 1062)) {
+        return res.status(400).json({ message: "Produit déjà noté aujourd'hui." });
+      }
+      console.error(`⭐ [${requestId}] ❌ Erreur:`, e);
+      return res.status(500).json({ message: "Erreur serveur." });
+    } finally {
+      conn.release();
+    }
+    
+  } catch (err) {
+    console.error(`⭐ [${requestId}] ❌ Erreur:`, err);
+    return res.status(500).json({ message: "Erreur serveur lors de la complétion de la tâche." });
+  }
+});
+
+// Get rate store history
+app.get("/api/rate-store/history", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const [rows] = await pool.execute(
+      `SELECT
+        id,
+        store_name AS storeName,
+        product_name AS productName,
+        rating,
+        comment,
+        reward_cents AS rewardCents,
+        created_at AS createdAt
+       FROM rate_store_completions
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+    
+    return res.json(rows);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
   }
 });
 

@@ -217,6 +217,166 @@ export default function DashboardPage() {
   const [language, setLanguage] = useState(
     () => localStorage.getItem("language") || "fr"
   );
+
+  // Rate Stores state
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [storeProducts, setStoreProducts] = useState([]);
+  const [productRatings, setProductRatings] = useState({});
+  const [productComments, setProductComments] = useState({});
+  const [productRewards, setProductRewards] = useState({});
+  const [validatedProducts, setValidatedProducts] = useState({});
+  const [validatingProduct, setValidatingProduct] = useState(null);
+
+  // Store products data
+  const allStoreProducts = {
+    marjane: [
+      { id: 'm1', name: 'Huile d\'olive extra vierge 1L', image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=200', price: '89.90 MAD' },
+      { id: 'm2', name: 'Lait entier UHT 1L', image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=200', price: '12.50 MAD' },
+      { id: 'm3', name: 'Riz basmati 5kg', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200', price: '65.00 MAD' },
+      { id: 'm4', name: 'Café moulu 500g', image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200', price: '45.00 MAD' },
+      { id: 'm5', name: 'Sucre blanc 2kg', image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=200', price: '22.00 MAD' },
+      { id: 'm6', name: 'Farine de blé 5kg', image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=200', price: '35.00 MAD' },
+    ],
+    carrefour: [
+      { id: 'c1', name: 'Poulet fermier entier', image: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=200', price: '75.00 MAD' },
+      { id: 'c2', name: 'Fromage Gouda 400g', image: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=200', price: '42.00 MAD' },
+      { id: 'c3', name: 'Jus d\'orange 2L', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=200', price: '28.00 MAD' },
+      { id: 'c4', name: 'Biscuits au chocolat 300g', image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=200', price: '18.50 MAD' },
+      { id: 'c5', name: 'Yaourt nature pack 12', image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=200', price: '35.00 MAD' },
+      { id: 'c6', name: 'Pain de mie 500g', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200', price: '15.00 MAD' },
+    ],
+    jumia: [
+      { id: 'j1', name: 'Smartphone Samsung Galaxy A54', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200', price: '4299.00 MAD' },
+      { id: 'j2', name: 'Écouteurs Bluetooth TWS', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=200', price: '299.00 MAD' },
+      { id: 'j3', name: 'Montre connectée Xiaomi', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200', price: '599.00 MAD' },
+      { id: 'j4', name: 'Sac à dos laptop 15.6"', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200', price: '189.00 MAD' },
+      { id: 'j5', name: 'Chargeur rapide USB-C 65W', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=200', price: '149.00 MAD' },
+      { id: 'j6', name: 'Coque iPhone 14 Pro', image: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=200', price: '79.00 MAD' },
+    ],
+    electroplanet: [
+      { id: 'e1', name: 'TV LED 55" 4K Smart', image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=200', price: '5999.00 MAD' },
+      { id: 'e2', name: 'Climatiseur Split 12000 BTU', image: 'https://images.unsplash.com/photo-1631545806609-5f0c4f5ff2dd?w=200', price: '4500.00 MAD' },
+      { id: 'e3', name: 'Machine à laver 8kg', image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=200', price: '3299.00 MAD' },
+      { id: 'e4', name: 'Réfrigérateur No Frost 400L', image: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=200', price: '6999.00 MAD' },
+      { id: 'e5', name: 'Micro-ondes 25L', image: 'https://images.unsplash.com/photo-1585659722983-3a675dabf23d?w=200', price: '899.00 MAD' },
+      { id: 'e6', name: 'Aspirateur sans fil', image: 'https://images.unsplash.com/photo-1558317374-067fb5f30001?w=200', price: '1499.00 MAD' },
+    ],
+    supeco: [
+      { id: 's1', name: 'Pack eau minérale 6x1.5L', image: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=200', price: '18.00 MAD' },
+      { id: 's2', name: 'Savon liquide 1L', image: 'https://images.unsplash.com/photo-1584305574647-0cc949a2bb9f?w=200', price: '25.00 MAD' },
+      { id: 's3', name: 'Papier toilette pack 12', image: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=200', price: '32.00 MAD' },
+      { id: 's4', name: 'Détergent lessive 3kg', image: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=200', price: '55.00 MAD' },
+      { id: 's5', name: 'Thon en conserve pack 4', image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=200', price: '48.00 MAD' },
+      { id: 's6', name: 'Pâtes alimentaires 1kg', image: 'https://images.unsplash.com/photo-1551462147-ff29053bfc14?w=200', price: '14.00 MAD' },
+    ],
+  };
+
+  // Function to get 3 random products from a store with rewards
+  const getRandomProducts = (storeName) => {
+    const products = allStoreProducts[storeName] || [];
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+  };
+
+  // Generate random reward between 0.5 and 3 MAD
+  const generateRandomReward = () => {
+    const min = 0.5;
+    const max = 3;
+    return (Math.random() * (max - min) + min).toFixed(2);
+  };
+
+  // Handle store selection
+  const handleSelectStore = (storeName) => {
+    setSelectedStore(storeName);
+    const randomProducts = getRandomProducts(storeName);
+    setStoreProducts(randomProducts);
+    setProductRatings({});
+    setProductComments({});
+    setValidatedProducts({});
+    // Generate rewards for each product
+    const rewards = {};
+    randomProducts.forEach(p => {
+      rewards[p.id] = generateRandomReward();
+    });
+    setProductRewards(rewards);
+  };
+
+  // Handle rating change
+  const handleRatingChange = (productId, rating) => {
+    setProductRatings(prev => ({ ...prev, [productId]: rating }));
+  };
+
+  // Handle comment change
+  const handleCommentChange = (productId, comment) => {
+    setProductComments(prev => ({ ...prev, [productId]: comment }));
+  };
+
+  // Validate individual product task
+  const handleValidateProduct = async (productId) => {
+    // Check if product has been rated
+    if (!productRatings[productId] || productRatings[productId] < 1) {
+      setErrorMessage('Veuillez d\'abord noter ce produit (1-5 étoiles).');
+      setShowErrorModal(true);
+      return;
+    }
+
+    setValidatingProduct(productId);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const product = storeProducts.find(p => p.id === productId);
+      const rewardMAD = parseFloat(productRewards[productId]);
+      const rewardCents = Math.round(rewardMAD * 100);
+      
+      const res = await fetch(buildApiUrl('/api/rate-store/complete'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          storeName: selectedStore,
+          productId: productId,
+          productName: product.name,
+          rating: productRatings[productId],
+          comment: productComments[productId] || '',
+          rewardCents: rewardCents,
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setErrorMessage(data.message || 'Erreur lors de la validation.');
+        setShowErrorModal(true);
+        setValidatingProduct(null);
+        return;
+      }
+      
+      // Mark as validated
+      setValidatedProducts(prev => ({ ...prev, [productId]: true }));
+      setValidatingProduct(null);
+      
+      // Update user balance in state
+      if (data.new_balance_cents !== undefined) {
+        setUser(prev => ({
+          ...prev,
+          balanceCents: data.new_balance_cents,
+        }));
+      }
+
+      // Show success toast
+      const reward = productRewards[productId];
+      setToast({ type: 'success', message: `Tâche validée ! +${reward} MAD` });
+      setTimeout(() => setToast(null), 3000);
+      
+    } catch (err) {
+      console.error('Erreur validation produit:', err);
+      setErrorMessage('Erreur de connexion au serveur.');
+      setShowErrorModal(true);
+      setValidatingProduct(null);
+    }
+  };
   // Hidden by default on each load; not persisted to ensure refresh re-hides it
   const [showBalance, setShowBalance] = useState(false);
   const [toast, setToast] = useState(null);
@@ -2657,24 +2817,6 @@ if (loginTimeStr) {
                       </div>
                     </button>
 
-                    {/* Facebook Card */}
-                    <div
-                      className="group relative bg-gradient-to-br from-blue-500/30 to-blue-700/30 rounded-2xl p-8 border border-blue-400/20 opacity-60 cursor-not-allowed"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <svg className="w-16 h-16 text-white/50" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-white/70 mb-1">Facebook</h3>
-                          <p className="text-xs text-white/50">Vidéos Facebook à visionner</p>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-3 py-1">
-                          <span className="text-[10px] font-semibold text-white">Coming Soon</span>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* TikTok Card */}
                     <div
                       className="group relative bg-gradient-to-br from-gray-800/30 to-black/30 rounded-2xl p-6 border border-gray-600/20 opacity-60 cursor-not-allowed"
@@ -2710,11 +2852,318 @@ if (loginTimeStr) {
                         </div>
                       </div>
                     </div>
+
+                    {/* Google Ads Card */}
+                    <div
+                      className="group relative bg-gradient-to-br from-blue-500/30 via-green-500/30 to-yellow-500/30 rounded-2xl p-6 border border-blue-400/20 opacity-60 cursor-not-allowed"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <svg className="w-16 h-16 text-white/50" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"/>
+                        </svg>
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-white/70 mb-1">Google Ads</h3>
+                          <p className="text-xs text-white/50">Publicités Google à visionner</p>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-3 py-1">
+                          <span className="text-[10px] font-semibold text-white">Coming Soon</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rate Stores Card - ACTIVE */}
+                    <button
+                      onClick={() => {
+                        setSelectedPlatform('ratestores');
+                        setSelectedStore(null);
+                      }}
+                      className="group relative bg-gradient-to-br from-emerald-500/90 to-teal-700/90 hover:from-emerald-500 hover:to-teal-700 rounded-2xl p-8 border border-emerald-400/20 hover:border-emerald-400/40 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/50"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-white mb-1">Rate Stores</h3>
+                          <p className="text-xs text-white/80">Noter les produits des magasins</p>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
+                          <span className="text-[10px] font-semibold text-white">Actif</span>
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </section>
               )}
 
-              {user.role !== "admin" && selectedPlatform !== null && (
+              {user.role !== "admin" && selectedPlatform === 'ratestores' && (
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPlatform(null);
+                          setSelectedStore(null);
+                          setStoreProducts([]);
+                        }}
+                        className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 flex items-center gap-1"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Retour
+                      </button>
+                      <h2 className="text-sm font-semibold tracking-tight">
+                        Rate Stores - Noter les produits
+                      </h2>
+                    </div>
+                  </div>
+
+                  {!selectedStore ? (
+                    // Store Selection
+                    <div>
+                      <p className="text-sm text-slate-300 mb-4">Choisissez un magasin pour noter ses produits :</p>
+                      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+                        {/* Marjane */}
+                        <button
+                          onClick={() => handleSelectStore('marjane')}
+                          className="group bg-gradient-to-br from-red-600/80 to-red-800/80 hover:from-red-600 hover:to-red-800 rounded-xl p-4 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <span className="text-red-600 font-bold text-lg">M</span>
+                            </div>
+                            <span className="text-white font-semibold text-sm">Marjane</span>
+                          </div>
+                        </button>
+
+                        {/* Carrefour */}
+                        <button
+                          onClick={() => handleSelectStore('carrefour')}
+                          className="group bg-gradient-to-br from-blue-600/80 to-blue-800/80 hover:from-blue-600 hover:to-blue-800 rounded-xl p-4 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 font-bold text-lg">C</span>
+                            </div>
+                            <span className="text-white font-semibold text-sm">Carrefour</span>
+                          </div>
+                        </button>
+
+                        {/* Jumia Maroc */}
+                        <button
+                          onClick={() => handleSelectStore('jumia')}
+                          className="group bg-gradient-to-br from-orange-500/80 to-orange-700/80 hover:from-orange-500 hover:to-orange-700 rounded-xl p-4 border border-orange-400/30 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <span className="text-orange-600 font-bold text-lg">J</span>
+                            </div>
+                            <span className="text-white font-semibold text-sm">Jumia Maroc</span>
+                          </div>
+                        </button>
+
+                        {/* Electroplanet */}
+                        <button
+                          onClick={() => handleSelectStore('electroplanet')}
+                          className="group bg-gradient-to-br from-yellow-500/80 to-yellow-700/80 hover:from-yellow-500 hover:to-yellow-700 rounded-xl p-4 border border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <span className="text-yellow-600 font-bold text-lg">E</span>
+                            </div>
+                            <span className="text-white font-semibold text-sm">Electroplanet</span>
+                          </div>
+                        </button>
+
+                        {/* Supeco */}
+                        <button
+                          onClick={() => handleSelectStore('supeco')}
+                          className="group bg-gradient-to-br from-green-600/80 to-green-800/80 hover:from-green-600 hover:to-green-800 rounded-xl p-4 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                              <span className="text-green-600 font-bold text-lg">S</span>
+                            </div>
+                            <span className="text-white font-semibold text-sm">Supeco</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Product Rating Section
+                    <div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <button
+                          onClick={() => {
+                            setSelectedStore(null);
+                            setStoreProducts([]);
+                            setProductRatings({});
+                            setProductComments({});
+                            setValidatedProducts({});
+                          }}
+                          className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 flex items-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                          </svg>
+                          Changer de magasin
+                        </button>
+                        <span className="text-sm font-semibold capitalize text-emerald-400">{selectedStore}</span>
+                      </div>
+
+                      <p className="text-sm text-slate-300 mb-4">Notez chaque produit et validez pour gagner :</p>
+                      <div className="space-y-4">
+                        {storeProducts.map((product) => {
+                          const isValidated = validatedProducts[product.id];
+                          const isValidating = validatingProduct === product.id;
+                          const reward = productRewards[product.id] || '0.00';
+                          
+                          return (
+                            <div 
+                              key={product.id} 
+                              className={`bg-slate-800/60 border rounded-xl p-4 transition-all ${isValidated ? 'border-emerald-500/50 bg-emerald-900/20' : 'border-slate-700'}`}
+                            >
+                              {/* Task Header with Reward */}
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-medium text-slate-400">Tâche de notation</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs bg-emerald-600/30 text-emerald-300 px-2 py-1 rounded-full font-semibold">
+                                    +{reward} MAD
+                                  </span>
+                                  {isValidated && (
+                                    <span className="text-xs bg-emerald-600 text-white px-2 py-1 rounded-full flex items-center gap-1">
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Validé
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex gap-4">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-20 h-20 object-cover rounded-lg"
+                                  onError={(e) => { e.target.src = 'https://via.placeholder.com/80?text=Produit'; }}
+                                />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-white mb-1">{product.name}</h4>
+                                  <p className="text-xs text-slate-400 mb-2">Prix: {product.price}</p>
+                                  
+                                  {/* Star Rating */}
+                                  <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-xs text-slate-400 mr-2">Note :</span>
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <button
+                                        key={star}
+                                        onClick={() => !isValidated && handleRatingChange(product.id, star)}
+                                        disabled={isValidated}
+                                        className={`focus:outline-none transition-transform ${isValidated ? 'cursor-not-allowed' : 'hover:scale-110'}`}
+                                      >
+                                        <svg
+                                          className={`w-6 h-6 ${(productRatings[product.id] || 0) >= star ? 'text-yellow-400' : 'text-slate-600'}`}
+                                          fill="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                        </svg>
+                                      </button>
+                                    ))}
+                                    {productRatings[product.id] && (
+                                      <span className="text-xs text-yellow-400 ml-2">{productRatings[product.id]}/5</span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Comment */}
+                                  <textarea
+                                    placeholder="Votre commentaire (optionnel)..."
+                                    value={productComments[product.id] || ''}
+                                    onChange={(e) => handleCommentChange(product.id, e.target.value)}
+                                    disabled={isValidated}
+                                    className={`w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none ${isValidated ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Validation Button */}
+                              {!isValidated ? (
+                                <button
+                                  onClick={() => handleValidateProduct(product.id)}
+                                  disabled={isValidating || !productRatings[product.id]}
+                                  className={`mt-3 w-full py-2 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+                                    isValidating 
+                                      ? 'bg-slate-700 text-slate-400 cursor-wait'
+                                      : !productRatings[product.id]
+                                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                  }`}
+                                >
+                                  {isValidating ? (
+                                    <>
+                                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Validation...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Valider la tâche (+{reward} MAD)
+                                    </>
+                                  )}
+                                </button>
+                              ) : (
+                                <div className="mt-3 w-full py-2 rounded-lg text-sm font-semibold bg-emerald-900/40 text-emerald-300 text-center flex items-center justify-center gap-2">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Tâche complétée - +{reward} MAD gagnés
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Summary when all validated */}
+                      {storeProducts.length > 0 && storeProducts.every(p => validatedProducts[p.id]) && (
+                        <div className="mt-6 bg-emerald-900/30 border border-emerald-500/40 rounded-xl p-4 text-center">
+                          <svg className="w-12 h-12 text-emerald-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <h3 className="text-lg font-bold text-emerald-300 mb-1">Toutes les tâches complétées !</h3>
+                          <p className="text-sm text-slate-300">
+                            Total gagné : <span className="text-emerald-400 font-bold">
+                              {storeProducts.reduce((sum, p) => sum + parseFloat(productRewards[p.id] || 0), 0).toFixed(2)} MAD
+                            </span>
+                          </p>
+                          <button
+                            onClick={() => {
+                              setSelectedStore(null);
+                              setStoreProducts([]);
+                              setProductRatings({});
+                              setProductComments({});
+                              setValidatedProducts({});
+                            }}
+                            className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-all"
+                          >
+                            Continuer avec un autre magasin
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {user.role !== "admin" && selectedPlatform !== null && selectedPlatform !== 'ratestores' && (
                 <section className="mb-8">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
