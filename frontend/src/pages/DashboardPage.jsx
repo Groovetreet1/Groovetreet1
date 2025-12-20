@@ -324,7 +324,7 @@ export default function DashboardPage() {
   const handleValidateProduct = async (productId) => {
     // Check if product has been rated
     if (!productRatings[productId] || productRatings[productId] < 1) {
-      setErrorMessage('Veuillez d\'abord noter ce produit (1-5 étoiles).');
+      setErrorMessage('عافاك قيّم هاد المنتوج أولا (1-5 نجوم).');
       setShowErrorModal(true);
       return;
     }
@@ -400,7 +400,7 @@ export default function DashboardPage() {
 
       // Show success toast
       const reward = productRewards[productId];
-      setToast({ type: 'success', message: `Tâche validée ! +${reward} MAD` });
+      setToast({ type: 'success', message: `التاسك تصادقات ! +${reward} MAD` });
       setTimeout(() => setToast(null), 3000);
       
     } catch (err) {
@@ -2821,14 +2821,14 @@ if (loginTimeStr) {
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-white font-bold text-lg">Période d'essai terminée !</h3>
-                          <p className="text-white/90 text-sm">Votre essai gratuit de 3 jours est terminé. Passez au VIP pour continuer à gagner de l'argent.</p>
+                          <h3 className="text-white font-bold text-lg">فترة التجربة سالات !</h3>
+                          <p className="text-white/90 text-sm">التجربة المجانية ديال 3 أيام سالات. دير VIP باش تكمل تربح الفلوس.</p>
                         </div>
                         <button
                           onClick={() => setShowVipModal(true)}
                           className="flex-shrink-0 px-4 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                          Passer VIP
+                          دير VIP
                         </button>
                       </div>
                     </div>
@@ -2843,14 +2843,14 @@ if (loginTimeStr) {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="text-white text-sm">
-                            <span className="font-bold">{trialDaysRemaining} jour{trialDaysRemaining > 1 ? 's' : ''}</span> restant{trialDaysRemaining > 1 ? 's' : ''} dans votre essai gratuit
+                            <span className="font-bold">{trialDaysRemaining} يوم</span> باقي ف التجربة المجانية ديالك
                           </span>
                         </div>
                         <button
                           onClick={() => setShowVipModal(true)}
                           className="text-xs px-3 py-1 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
                         >
-                          Passer VIP
+                          دير VIP
                         </button>
                       </div>
                     </div>
@@ -2874,10 +2874,10 @@ if (loginTimeStr) {
                           </svg>
                           <div className="text-center">
                             <h3 className="text-xl font-bold text-white/70 mb-1">YouTube</h3>
-                            <p className="text-xs text-white/50">{trialExpired ? "Période d'essai terminée" : "Limite atteinte"}</p>
+                            <p className="text-xs text-white/50">{trialExpired ? "فترة التجربة سالات" : "الليميت وصلات"}</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "Essai fini" : "Limité"}</span>
+                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "سالات" : "محدود"}</span>
                           </div>
                         </div>
                       </div>
@@ -2917,7 +2917,7 @@ if (loginTimeStr) {
                             <p className="text-xs text-white/80">Regarder des vidéos YouTube</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">Actif</span>
+                            <span className="text-[10px] font-semibold text-white">نشيط</span>
                           </div>
                         </div>
                       </button>
@@ -2988,10 +2988,10 @@ if (loginTimeStr) {
                           </svg>
                           <div className="text-center">
                             <h3 className="text-xl font-bold text-white/70 mb-1">Rate Stores</h3>
-                            <p className="text-xs text-white/50">{trialExpired ? "Période d'essai terminée" : "Limite atteinte"}</p>
+                            <p className="text-xs text-white/50">{trialExpired ? "فترة التجربة سالات" : "الليميت وصلات"}</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-amber-500/40 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "Essai fini" : "Limité"}</span>
+                            <span className="text-[10px] font-semibold text-white">{trialExpired ? "سالات" : "محدود"}</span>
                           </div>
                         </div>
                       </div>
@@ -3009,10 +3009,10 @@ if (loginTimeStr) {
                           </svg>
                           <div className="text-center">
                             <h3 className="text-xl font-bold text-white mb-1">Rate Stores</h3>
-                            <p className="text-xs text-white/80">Noter les produits des magasins</p>
+                            <p className="text-xs text-white/80">قيّم المنتوجات ديال الماغازانات</p>
                           </div>
                           <div className="absolute top-2 right-2 bg-white/20 rounded-full px-2 py-1">
-                            <span className="text-[10px] font-semibold text-white">Actif</span>
+                            <span className="text-[10px] font-semibold text-white">نشيط</span>
                           </div>
                         </div>
                       </button>
@@ -3036,10 +3036,10 @@ if (loginTimeStr) {
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        Retour
+                        رجوع
                       </button>
                       <h2 className="text-sm font-semibold tracking-tight">
-                        Rate Stores - Noter les produits
+                        Rate Stores - قيّم المنتوجات
                       </h2>
                     </div>
                   </div>
@@ -3050,12 +3050,12 @@ if (loginTimeStr) {
                       <svg className="w-16 h-16 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <h3 className="text-lg font-bold text-amber-300 mb-2">Limite quotidienne atteinte !</h3>
+                      <h3 className="text-lg font-bold text-amber-300 mb-2">الليميت ديال اليوم وصلات !</h3>
                       <p className="text-sm text-slate-300 mb-2">
-                        Vous avez gagné <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> aujourd'hui.
+                        ربحتي <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> اليوم.
                       </p>
                       <p className="text-xs text-slate-400">
-                        Revenez demain pour continuer à gagner !
+                        رجع غدا باش تكمل تربح !
                       </p>
                     </div>
                   ) : !selectedStore ? (
@@ -3063,8 +3063,8 @@ if (loginTimeStr) {
                     <div>
                       <p className="text-sm text-slate-300 mb-4">
                         {user?.vipLevel === 'VIP' 
-                          ? 'Choisissez un magasin pour noter ses produits :'
-                          : `Choisissez un magasin pour noter ses produits (${5 - completedStores.length} restants) :`
+                          ? 'ختار ماغازان باش تقيّم المنتوجات ديالو :'
+                          : `ختار ماغازان باش تقيّم المنتوجات ديالو (${5 - completedStores.length} باقيين) :`
                         }
                       </p>
                       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -3222,14 +3222,14 @@ if (loginTimeStr) {
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                             <div>
-                              <h3 className="text-white font-bold">Tous les magasins notés !</h3>
-                              <p className="text-white/80 text-sm">Passez au VIP pour noter plus de produits chaque jour.</p>
+                              <h3 className="text-white font-bold">كاع الماغازانات تقيّمو !</h3>
+                              <p className="text-white/80 text-sm">دير VIP باش تقيّم منتوجات أكثر كل يوم.</p>
                             </div>
                             <button
                               onClick={() => setShowVipModal(true)}
                               className="ml-auto px-4 py-2 bg-white text-emerald-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
                             >
-                              Passer VIP
+                              دير VIP
                             </button>
                           </div>
                         </div>
@@ -3252,7 +3252,7 @@ if (loginTimeStr) {
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                           </svg>
-                          Changer de magasin
+                          بدل الماغازان
                         </button>
                         <span className="text-sm font-semibold capitalize text-emerald-400">{selectedStore}</span>
                       </div>
@@ -3281,7 +3281,7 @@ if (loginTimeStr) {
                                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                       </svg>
-                                      Validé
+                                      تصادق
                                     </span>
                                   )}
                                 </div>
@@ -3324,7 +3324,7 @@ if (loginTimeStr) {
                                   
                                   {/* Comment */}
                                   <textarea
-                                    placeholder="Votre commentaire (optionnel)..."
+                                    placeholder="التعليق ديالك (اختياري)..."
                                     value={productComments[product.id] || ''}
                                     onChange={(e) => handleCommentChange(product.id, e.target.value)}
                                     disabled={isValidated}
@@ -3360,7 +3360,7 @@ if (loginTimeStr) {
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                       </svg>
-                                      Valider la tâche (+{reward} MAD)
+                                      صادق على التاسك (+{reward} MAD)
                                     </>
                                   )}
                                 </button>
@@ -3422,7 +3422,7 @@ if (loginTimeStr) {
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                        Retour
+                        رجوع
                       </button>
                       <h2 className="text-sm font-semibold tracking-tight capitalize">
                         {selectedPlatform} - {L.tasksSectionTitle}
@@ -3466,12 +3466,12 @@ if (loginTimeStr) {
                       <svg className="w-16 h-16 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <h3 className="text-lg font-bold text-amber-300 mb-2">Limite quotidienne atteinte !</h3>
+                      <h3 className="text-lg font-bold text-amber-300 mb-2">الليميت ديال اليوم وصلات !</h3>
                       <p className="text-sm text-slate-300 mb-2">
-                        Vous avez gagné <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> aujourd'hui.
+                        ربحتي <span className="text-emerald-400 font-bold">{(todayEarnings / 100).toFixed(2)} MAD</span> اليوم.
                       </p>
                       <p className="text-xs text-slate-400">
-                        Revenez demain pour continuer à gagner !
+                        رجع غدا باش تكمل تربح !
                       </p>
                     </div>
                   ) : loadingTasks ? (
