@@ -2895,21 +2895,6 @@ if (loginTimeStr) {
                         ? vipExpiryText
                         : L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
                     </p>
-                    {/* Daily limit for FREE users only */}
-                    {!isUserVip && dailyLimit > 0 && (
-                      <div className="w-full mt-4 pt-4 border-t border-slate-600">
-                        <p className="text-xs text-slate-400 mb-2">Gains d'aujourd'hui</p>
-                        <p className="text-lg font-bold text-white mb-1">
-                          {(todayEarnings / 100).toFixed(2)} / {(dailyLimit / 100).toFixed(2)} MAD
-                        </p>
-                        <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-emerald-600"
-                            style={{ width: `${Math.min(100, (todayEarnings / dailyLimit) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
                     {/* Trial days remaining for FREE users only */}
                     {!isUserVip && !trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && (
                       <div className="w-full mt-3 pt-3 border-t border-slate-600 flex items-center justify-center gap-2">
