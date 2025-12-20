@@ -275,11 +275,14 @@ export default function DashboardPage() {
     ],
   };
 
-  // Function to get 3 random products from a store with rewards
+  // Function to get random products from a store (2 for FREE, 3 for VIP)
   const getRandomProducts = (storeName) => {
     const products = allStoreProducts[storeName] || [];
     const shuffled = [...products].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, 3);
+    // FREE users get 2 tasks, VIP users get 3 tasks
+    const isVip = user?.vipLevel === 'VIP';
+    const taskCount = isVip ? 3 : 2;
+    return shuffled.slice(0, taskCount);
   };
 
   // Generate random reward between 0.5 and 2 MAD
