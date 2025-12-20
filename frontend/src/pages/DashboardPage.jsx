@@ -204,6 +204,12 @@ export default function DashboardPage() {
   const [trialExpired, setTrialExpired] = useState(false);
   const [trialDaysRemaining, setTrialDaysRemaining] = useState(null);
 
+  // Spin Wheel state
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [spinResult, setSpinResult] = useState(null);
+  const [wheelRotation, setWheelRotation] = useState(0);
+
   // Protection contre les appels multiples de handleCompleteTask (useRef = synchrone)
   const isCompletingTaskRef = useRef(false);
 
@@ -1080,6 +1086,22 @@ if (loginTimeStr) {
         console.error("Error refreshing user data:", err);
       }
     };
+
+    // Check if user can spin the weekly wheel (Monday only)
+    const checkSpinWheel = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(buildApiUrl("/api/spin-wheel/can-spin"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok && data.canSpin) {
+          setShowSpinWheel(true);
+        }
+      } catch (err) {
+        console.error("Error checking spin wheel:", err);
+      }
+    };
     
     refreshUserData();
     fetchTasks();
@@ -1088,6 +1110,7 @@ if (loginTimeStr) {
     fetchReferrals();
     fetchDailyEarnings();
     fetchAdminOps();
+    checkSpinWheel();
 
     if (parsedUser?.role === "admin") {
       const fetchAdminUsers = async () => {
@@ -1676,6 +1699,60 @@ if (loginTimeStr) {
     if (upper.includes("VIP")) return "VIP";
     if (upper.includes("FREE")) return "FREE";
     return raw || "FREE";
+  };
+
+  // Handle spin wheel
+  const handleSpin = async () => {
+    if (isSpinning) return;
+    
+    setIsSpinning(true);
+    setSpinResult(null);
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/spin-wheel/spin"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        // Calculate rotation: each slice is 360/7 degrees
+        const sliceAngle = 360 / 7;
+        const targetSlice = data.sliceIndex;
+        // Spin multiple full rotations + land on target slice
+        const fullRotations = 5; // 5 full spins
+        const targetAngle = (fullRotations * 360) + (360 - (targetSlice * sliceAngle) - (sliceAngle / 2));
+        
+        setWheelRotation(targetAngle);
+        
+        // Wait for animation to complete
+        setTimeout(() => {
+          setSpinResult(data);
+          setIsSpinning(false);
+          
+          // Update user balance if won
+          if (data.newBalance !== null) {
+            setUser(prev => {
+              const updated = { ...prev, balanceCents: data.newBalance };
+              localStorage.setItem('user', JSON.stringify(updated));
+              return updated;
+            });
+          }
+        }, 4000); // 4 seconds for spin animation
+      } else {
+        setIsSpinning(false);
+        alert(data.message || "Erreur lors du tirage.");
+      }
+    } catch (err) {
+      console.error("Spin error:", err);
+      setIsSpinning(false);
+      alert("Erreur réseau.");
+    }
   };
 
   const handlePlayerStateChange = (event) => {
@@ -4462,6 +4539,129 @@ if (loginTimeStr) {
               >
                 Fermer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spin Wheel Popup - Weekly Monday */}
+      {showSpinWheel && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-purple-900 via-slate-900 to-indigo-900 border-2 border-purple-500/50 rounded-3xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+              <div className="absolute top-2 left-4 text-yellow-400 text-2xl animate-pulse">✨</div>
+              <div className="absolute top-8 right-6 text-purple-300 text-xl animate-ping">★</div>
+              <div className="absolute bottom-10 left-8 text-indigo-300 text-lg animate-pulse">✨</div>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-center text-white mb-2">🎰 Roue de la Chance!</h2>
+            <p className="text-center text-purple-200 text-sm mb-6">Tournez la roue pour gagner des récompenses!</p>
+            
+            {/* Wheel Container */}
+            <div className="relative w-64 h-64 mx-auto mb-6">
+              {/* Arrow pointer */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
+                <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-t-[25px] border-l-transparent border-r-transparent border-t-yellow-400 drop-shadow-lg"></div>
+              </div>
+              
+              {/* Wheel */}
+              <div 
+                className="w-full h-full rounded-full border-4 border-yellow-400 shadow-xl transition-transform duration-[4000ms] ease-out"
+                style={{
+                  transform: `rotate(${wheelRotation}deg)`,
+                  background: `conic-gradient(
+                    from 0deg,
+                    #ef4444 0deg 51.43deg,
+                    #22c55e 51.43deg 102.86deg,
+                    #ef4444 102.86deg 154.29deg,
+                    #f59e0b 154.29deg 205.71deg,
+                    #ef4444 205.71deg 257.14deg,
+                    #8b5cf6 257.14deg 308.57deg,
+                    #22c55e 308.57deg 360deg
+                  )`
+                }}
+              >
+                {/* Slice labels */}
+                <div className="absolute inset-0">
+                  {/* Slice 0: Oops - red */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(25.7deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-25.7deg)'}}>Oops!</span>
+                  </div>
+                  {/* Slice 1: 7 MAD - green */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(77.1deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-77.1deg)'}}>7 MAD</span>
+                  </div>
+                  {/* Slice 2: Oops - red */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(128.5deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-128.5deg)'}}>Oops!</span>
+                  </div>
+                  {/* Slice 3: 100 MAD - orange */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(180deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-180deg)'}}>100 MAD</span>
+                  </div>
+                  {/* Slice 4: Oops - red */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(231.4deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-231.4deg)'}}>Oops!</span>
+                  </div>
+                  {/* Slice 5: 500 MAD - purple */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(282.8deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-282.8deg)'}}>500 MAD</span>
+                  </div>
+                  {/* Slice 6: 7 MAD - green */}
+                  <div className="absolute w-full h-full flex items-center justify-center" style={{transform: 'rotate(334.2deg)'}}>
+                    <span className="text-white text-[10px] font-bold" style={{transform: 'translateY(-85px) rotate(-334.2deg)'}}>7 MAD</span>
+                  </div>
+                </div>
+                {/* Center circle */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 border-4 border-white shadow-lg flex items-center justify-center">
+                  <span className="text-white text-xl">🎲</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Result display */}
+            {spinResult && (
+              <div className={`text-center mb-4 p-4 rounded-xl ${spinResult.result === 'oops' ? 'bg-red-900/50 border border-red-500/50' : 'bg-emerald-900/50 border border-emerald-500/50'}`}>
+                {spinResult.result === 'oops' ? (
+                  <>
+                    <p className="text-2xl mb-2">😢</p>
+                    <p className="text-lg font-bold text-red-300">Oops! À la prochaine!</p>
+                    <p className="text-sm text-red-200">Revenez lundi prochain pour retenter votre chance!</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl mb-2">🎉</p>
+                    <p className="text-lg font-bold text-emerald-300">Félicitations!</p>
+                    <p className="text-xl font-bold text-white">Vous avez gagné {(spinResult.rewardCents / 100).toFixed(2)} MAD!</p>
+                    <p className="text-sm text-emerald-200">Le montant a été ajouté à votre solde.</p>
+                  </>
+                )}
+              </div>
+            )}
+            
+            {/* Buttons */}
+            <div className="flex gap-3">
+              {!spinResult ? (
+                <button
+                  onClick={handleSpin}
+                  disabled={isSpinning}
+                  className={`flex-1 py-3 rounded-xl font-bold text-white transition-all ${isSpinning ? 'bg-slate-600 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-purple-500/30'}`}
+                >
+                  {isSpinning ? 'Tirage en cours...' : '🎰 Tourner la roue!'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowSpinWheel(false);
+                    setSpinResult(null);
+                    setWheelRotation(0);
+                  }}
+                  className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600"
+                >
+                  Fermer
+                </button>
+              )}
             </div>
           </div>
         </div>

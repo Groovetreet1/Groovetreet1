@@ -3874,6 +3874,181 @@ app.post("/api/youtube/record-like", authMiddleware, async (req, res) => {
   }
 });
 
+// ==================== WEEKLY SPIN WHEEL ====================
+
+// Ensure spin_wheel_history table exists
+async function ensureSpinWheelTable() {
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS spin_wheel_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      spin_week_start DATE NOT NULL,
+      result VARCHAR(50) NOT NULL,
+      reward_cents INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_user_week (user_id, spin_week_start)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  console.log('✓ Table spin_wheel_history vérifiée/créée');
+}
+ensureSpinWheelTable().catch(console.error);
+
+// Get the Monday of current week (for GMT+1)
+function getMondayOfWeek() {
+  const now = new Date(Date.now() + 1 * 60 * 60 * 1000); // GMT+1
+  const day = now.getUTCDay();
+  const diff = now.getUTCDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+  const monday = new Date(now.setUTCDate(diff));
+  monday.setUTCHours(0, 0, 0, 0);
+  return monday;
+}
+
+// Check if today is Monday (GMT+1)
+function isMondayGMT1() {
+  const now = new Date(Date.now() + 1 * 60 * 60 * 1000); // GMT+1
+  return now.getUTCDay() === 1; // 1 = Monday
+}
+
+// Check if user can spin this week
+app.get('/api/spin-wheel/can-spin', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const mondayOfWeek = getMondayOfWeek();
+    const mondayStr = mondayOfWeek.toISOString().split('T')[0];
+    
+    // Check if it's Monday
+    if (!isMondayGMT1()) {
+      return res.json({ 
+        canSpin: false, 
+        reason: 'not_monday',
+        message: 'La roue est disponible uniquement le lundi!'
+      });
+    }
+    
+    // Check if already spun this week
+    const [rows] = await pool.execute(
+      'SELECT id, result, reward_cents FROM spin_wheel_history WHERE user_id = ? AND spin_week_start = ? LIMIT 1',
+      [userId, mondayStr]
+    );
+    
+    if (rows.length > 0) {
+      return res.json({ 
+        canSpin: false, 
+        reason: 'already_spun',
+        message: 'Vous avez déjà tourné la roue cette semaine!',
+        lastResult: rows[0].result,
+        lastReward: rows[0].reward_cents
+      });
+    }
+    
+    return res.json({ canSpin: true });
+  } catch (err) {
+    console.error('Error in /api/spin-wheel/can-spin:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+});
+
+// Process spin result
+app.post('/api/spin-wheel/spin', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const mondayOfWeek = getMondayOfWeek();
+    const mondayStr = mondayOfWeek.toISOString().split('T')[0];
+    
+    // Check if it's Monday
+    if (!isMondayGMT1()) {
+      return res.status(403).json({ message: 'La roue est disponible uniquement le lundi!' });
+    }
+    
+    // Check if already spun this week
+    const [existing] = await pool.execute(
+      'SELECT id FROM spin_wheel_history WHERE user_id = ? AND spin_week_start = ? LIMIT 1',
+      [userId, mondayStr]
+    );
+    
+    if (existing.length > 0) {
+      return res.status(403).json({ message: 'Vous avez déjà tourné la roue cette semaine!' });
+    }
+    
+    // Determine result - ONLY "Oops" (60%) or "7 MAD" (40%)
+    // The wheel shows 500 MAD and 100 MAD but they NEVER win
+    const random = Math.random();
+    let result;
+    let rewardCents = 0;
+    
+    if (random < 0.6) {
+      // 60% chance: Oops
+      result = 'oops';
+      rewardCents = 0;
+    } else {
+      // 40% chance: 7 MAD
+      result = '7mad';
+      rewardCents = 700;
+    }
+    
+    // Start transaction
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      
+      // Record spin
+      await conn.execute(
+        'INSERT INTO spin_wheel_history (user_id, spin_week_start, result, reward_cents) VALUES (?, ?, ?, ?)',
+        [userId, mondayStr, result, rewardCents]
+      );
+      
+      let newBalance = null;
+      
+      // If won 7 MAD, add to balance
+      if (rewardCents > 0) {
+        const [userRows] = await conn.execute(
+          'SELECT balance_cents FROM users WHERE id = ? FOR UPDATE',
+          [userId]
+        );
+        if (userRows.length > 0) {
+          newBalance = userRows[0].balance_cents + rewardCents;
+          await conn.execute(
+            'UPDATE users SET balance_cents = ? WHERE id = ?',
+            [newBalance, userId]
+          );
+        }
+      }
+      
+      await conn.commit();
+      
+      // Return which slice to land on (for visual)
+      // Wheel slices: 0=Oops, 1=7MAD, 2=Oops, 3=100MAD, 4=Oops, 5=500MAD, 6=7MAD
+      let sliceIndex;
+      if (result === 'oops') {
+        // Pick random Oops slice (0, 2, or 4)
+        const oopsSlices = [0, 2, 4];
+        sliceIndex = oopsSlices[Math.floor(Math.random() * oopsSlices.length)];
+      } else {
+        // Pick random 7 MAD slice (1 or 6)
+        const madSlices = [1, 6];
+        sliceIndex = madSlices[Math.floor(Math.random() * madSlices.length)];
+      }
+      
+      return res.json({
+        success: true,
+        result,
+        rewardCents,
+        sliceIndex,
+        newBalance
+      });
+    } catch (txErr) {
+      await conn.rollback();
+      throw txErr;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error('Error in /api/spin-wheel/spin:', err);
+    return res.status(500).json({ message: 'Erreur serveur.' });
+  }
+});
+
 // Lancer le serveur
 app.listen(PORT, () => {
   console.log(`API en écoute sur http://localhost:${PORT}`);
