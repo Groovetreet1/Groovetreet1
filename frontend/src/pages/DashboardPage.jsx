@@ -165,6 +165,8 @@ export default function DashboardPage() {
   const [vipError, setVipError] = useState("");
   const [selectedVipPlan, setSelectedVipPlan] = useState(null);
   const [showVipFeaturesPopup, setShowVipFeaturesPopup] = useState(null); // Plan number to show features
+  const [showVipSuccessPopup, setShowVipSuccessPopup] = useState(false);
+  const [vipSuccessData, setVipSuccessData] = useState({ planName: '', price: 0, dailyRate: 0, months: 0 });
   const [vipPromoCode, setVipPromoCode] = useState("");
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
   const [requiredAmount, setRequiredAmount] = useState(0);
@@ -1992,9 +1994,15 @@ if (loginTimeStr) {
           setVipError(data.message || "Erreur lors du passage en VIP.");
         }
       } else {
-        const successMsg = data.message || "Votre upgrade VIP est confirmé.";
-        setToast({ message: successMsg, type: "success" });
-        setTimeout(() => setToast(null), 5000);
+        // Get plan names for celebration popup
+        const planNames = { 1: 'STARTER', 2: 'POPULAIRE', 3: 'PREMIUM', 4: 'ELITE VIP' };
+        setVipSuccessData({
+          planName: planNames[selectedVipPlan],
+          price: plan.price / 100,
+          dailyRate: plan.dailyRate / 100,
+          months: plan.duration,
+          planId: selectedVipPlan
+        });
         setUser((prev) => {
           if (!prev) return prev;
           const expiresAt = data.vip_expires_at || data.vipExpiresAt || prev.vipExpiresAt || null;
@@ -2010,6 +2018,7 @@ if (loginTimeStr) {
         setShowVipModal(false);
         setSelectedVipPlan(null);
         setVipPromoCode("");
+        setShowVipSuccessPopup(true);
       }
     } catch (err) {
       console.error(err);
@@ -4940,7 +4949,136 @@ if (loginTimeStr) {
         </div>
       )}
 
-      {/* Modal de succès - Tâche complétée */}
+      {/* VIP Success Celebration Popup */}
+            {showVipSuccessPopup && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+                <div className={`relative w-full max-w-md rounded-3xl p-8 shadow-2xl overflow-hidden animate-fadeIn ${
+                  vipSuccessData.planId === 4 
+                    ? 'bg-gradient-to-br from-yellow-900/90 via-amber-900/90 to-orange-900/90 border-2 border-yellow-500/50 shadow-yellow-500/30'
+                    : vipSuccessData.planId === 3
+                    ? 'bg-gradient-to-br from-amber-900/90 via-slate-900 to-orange-900/90 border-2 border-amber-500/50 shadow-amber-500/20'
+                    : vipSuccessData.planId === 2
+                    ? 'bg-gradient-to-br from-purple-900/90 via-slate-900 to-pink-900/90 border-2 border-purple-500/50 shadow-purple-500/20'
+                    : 'bg-gradient-to-br from-indigo-900/90 via-slate-900 to-purple-900/90 border-2 border-indigo-500/50 shadow-indigo-500/20'
+                }`}>
+                  {/* Confetti animation */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div className="absolute top-0 left-1/4 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                    <div className="absolute top-10 right-1/4 w-2 h-2 bg-pink-400 rounded-full animate-ping" style={{animationDelay: '0.2s'}}></div>
+                    <div className="absolute top-5 left-3/4 w-2 h-2 bg-emerald-400 rounded-full animate-ping" style={{animationDelay: '0.4s'}}></div>
+                    <div className="absolute top-16 left-1/3 w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{animationDelay: '0.6s'}}></div>
+                    <div className="absolute top-8 right-1/3 w-3 h-3 bg-purple-400 rounded-full animate-ping" style={{animationDelay: '0.8s'}}></div>
+                    <div className="absolute bottom-20 left-1/4 w-2 h-2 bg-amber-400 rounded-full animate-ping" style={{animationDelay: '0.3s'}}></div>
+                    <div className="absolute bottom-16 right-1/4 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                  </div>
+      
+                  {/* Trophy/Star Icon */}
+                  <div className="flex justify-center mb-6">
+                    <div className={`relative w-24 h-24 rounded-full flex items-center justify-center ${
+                      vipSuccessData.planId === 4 
+                        ? 'bg-gradient-to-br from-yellow-400 to-amber-500 shadow-lg shadow-yellow-500/50'
+                        : vipSuccessData.planId === 3
+                        ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/50'
+                        : vipSuccessData.planId === 2
+                        ? 'bg-gradient-to-br from-purple-400 to-pink-500 shadow-lg shadow-purple-500/50'
+                        : 'bg-gradient-to-br from-indigo-400 to-purple-500 shadow-lg shadow-indigo-500/50'
+                    }`}>
+                      <svg className="w-14 h-14 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+                      </svg>
+                      <div className="absolute inset-0 rounded-full animate-ping opacity-30" style={{
+                        background: vipSuccessData.planId === 4 ? 'linear-gradient(to br, #facc15, #f59e0b)' :
+                                   vipSuccessData.planId === 3 ? 'linear-gradient(to br, #fbbf24, #f97316)' :
+                                   vipSuccessData.planId === 2 ? 'linear-gradient(to br, #a855f7, #ec4899)' :
+                                   'linear-gradient(to br, #818cf8, #a855f7)'
+                      }}></div>
+                    </div>
+                  </div>
+      
+                  {/* Success Message */}
+                  <div className="text-center mb-6">
+                    <h2 className="text-3xl font-black text-white mb-2">🎉 Félicitations!</h2>
+                    <p className={`text-lg font-semibold mb-1 ${
+                      vipSuccessData.planId === 4 ? 'text-yellow-400' :
+                      vipSuccessData.planId === 3 ? 'text-amber-400' :
+                      vipSuccessData.planId === 2 ? 'text-purple-400' : 'text-indigo-400'
+                    }`}>
+                      Vous êtes maintenant {vipSuccessData.planName}!
+                    </p>
+                    <p className="text-sm text-slate-300">Votre upgrade a été activé avec succès</p>
+                  </div>
+      
+                  {/* Plan Details */}
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-white font-medium">Gains journaliers</span>
+                      </div>
+                      <span className="text-emerald-400 font-bold text-lg">{vipSuccessData.dailyRate} MAD/jour</span>
+                    </div>
+      
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span className="text-white font-medium">Durée</span>
+                      </div>
+                      <span className="text-blue-400 font-bold text-lg">{vipSuccessData.months} mois</span>
+                    </div>
+      
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          vipSuccessData.planId === 4 ? 'bg-yellow-500/20' :
+                          vipSuccessData.planId === 3 ? 'bg-amber-500/20' :
+                          vipSuccessData.planId === 2 ? 'bg-purple-500/20' : 'bg-indigo-500/20'
+                        }`}>
+                          <svg className={`w-5 h-5 ${
+                            vipSuccessData.planId === 4 ? 'text-yellow-400' :
+                            vipSuccessData.planId === 3 ? 'text-amber-400' :
+                            vipSuccessData.planId === 2 ? 'text-purple-400' : 'text-indigo-400'
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <span className="text-white font-medium">Gain total potentiel</span>
+                      </div>
+                      <span className={`font-bold text-lg ${
+                        vipSuccessData.planId === 4 ? 'text-yellow-400' :
+                        vipSuccessData.planId === 3 ? 'text-amber-400' :
+                        vipSuccessData.planId === 2 ? 'text-purple-400' : 'text-indigo-400'
+                      }`}>~{(vipSuccessData.dailyRate * vipSuccessData.months * 30).toFixed(0)} MAD</span>
+                    </div>
+                  </div>
+      
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setShowVipSuccessPopup(false)}
+                    className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${
+                      vipSuccessData.planId === 4 
+                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black shadow-yellow-500/30'
+                        : vipSuccessData.planId === 3
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-amber-500/30'
+                        : vipSuccessData.planId === 2
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white shadow-purple-500/30'
+                        : 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-400 hover:to-purple-400 text-white shadow-indigo-500/30'
+                    }`}
+                  >
+                    🚀 Commencer à gagner!
+                  </button>
+                </div>
+              </div>
+            )}
+      
+            {/* Modal de succès - Tâche complétée */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-900 border-2 border-emerald-500/50 rounded-2xl p-8 w-full max-w-md shadow-2xl shadow-emerald-500/20 relative overflow-hidden">
