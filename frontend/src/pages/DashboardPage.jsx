@@ -215,6 +215,7 @@ export default function DashboardPage() {
   const [wheelRotation, setWheelRotation] = useState(0);
   const [canActuallySpin, setCanActuallySpin] = useState(false);
   const [spinMessage, setSpinMessage] = useState("");
+  const [randomWinningMessage, setRandomWinningMessage] = useState("");
 
   // Protection contre les appels multiples de handleCompleteTask (useRef = synchrone)
   const isCompletingTaskRef = useRef(false);
@@ -1333,6 +1334,124 @@ if (loginTimeStr) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showNotifications]);
+
+  // Random user winnings display
+  useEffect(() => {
+    const winningMessages = [
+      "Najima a gagné 300 MAD",
+      "Nassim a gagné dans la roue 7 MAD",
+      "Karim a gagné 150 MAD",
+      "Fatima a gagné dans la roue 12 MAD",
+      "Ahmed a gagné 250 MAD",
+      "Samira a gagné dans la roue 5 MAD",
+      "Youssef a gagné 180 MAD",
+      "Amina a gagné dans la roue 9 MAD",
+      "Omar a gagné 220 MAD",
+      "Laila a gagné dans la roue 15 MAD",
+      "Hassan a gagné 400 MAD",
+      "Zineb a gagné dans la roue 8 MAD",
+      "Mehdi a gagné 120 MAD",
+      "Khadija a gagné dans la roue 11 MAD",
+      "Ali a gagné 350 MAD",
+      "Salma a gagné dans la roue 6 MAD",
+      "Mustapha a gagné 275 MAD",
+      "Nawal a gagné dans la roue 10 MAD",
+      "Rachid a gagné 190 MAD",
+      "Jamila a gagné dans la roue 13 MAD",
+      "Tariq a gagné 280 MAD",
+      "Hind a gagné dans la roue 4 MAD",
+      "Abdelatif a gagné 210 MAD",
+      "Fatiha a gagné dans la roue 14 MAD",
+      "Mohammed a gagné 320 MAD",
+      "Souad a gagné dans la roue 3 MAD",
+      "Driss a gagné 175 MAD",
+      "Rabia a gagné dans la roue 16 MAD",
+      "Brahim a gagné 240 MAD",
+      "Malika a gagné dans la roue 2 MAD",
+      "Said a gagné 290 MAD",
+      "Houria a gagné dans la roue 17 MAD",
+      "El Hassan a gagné 160 MAD",
+      "Naima a gagné dans la roue 18 MAD",
+      "Moulay a gagné 310 MAD",
+      "Zahra a gagné dans la roue 19 MAD",
+      "Abdellah a gagné 260 MAD",
+      "Siham a gagné dans la roue 20 MAD",
+      "Tarik a gagné 230 MAD",
+      "Asmaa a gagné dans la roue 21 MAD",
+      "Hamid a gagné 375 MAD",
+      "Latifa a gagné dans la roue 22 MAD",
+      "Mounir a gagné 140 MAD",
+      "Safia a gagné dans la roue 23 MAD",
+      "Anas a gagné 340 MAD",
+      "Wafaa a gagné dans la roue 24 MAD",
+      "Ismail a gagné 195 MAD",
+      "Raja a gagné dans la roue 25 MAD",
+      "Yassine a gagné 285 MAD",
+      "Nadia a gagné dans la roue 26 MAD",
+      "Mostafa a gagné 360 MAD",
+      "Hana a gagné dans la roue 27 MAD",
+      "Redouane a gagné 130 MAD",
+      "Fadwa a gagné dans la roue 28 MAD",
+      "Khalid a gagné 390 MAD",
+      "Samira a gagné dans la roue 29 MAD",
+      "Aziz a gagné 155 MAD",
+      "Hayat a gagné dans la roue 30 MAD",
+      "Adil a gagné 305 MAD",
+      "Maha a gagné dans la roue 31 MAD",
+      "Nabil a gagné 165 MAD",
+      "Rachida a gagné dans la roue 32 MAD",
+      "Fouad a gagné 270 MAD",
+      "Naoual a gagné dans la roue 33 MAD",
+      "Saad a gagné 200 MAD",
+      "Hafsia a gagné dans la roue 34 MAD",
+      "Mouad a gagné 325 MAD",
+      "Sanaa a gagné dans la roue 35 MAD",
+      "Younes a gagné 185 MAD",
+      "Khouloud a gagné dans la roue 36 MAD",
+      "Hicham a gagné 295 MAD",
+      "Imane a gagné dans la roue 37 MAD",
+      "Jalal a gagné 215 MAD",
+      "Najat a gagné dans la roue 38 MAD",
+      "Zakaria a gagné 380 MAD",
+      "Farida a gagné dans la roue 39 MAD",
+      "Abdelkarim a gagné 145 MAD",
+      "Saida a gagné dans la roue 40 MAD",
+      "Mourad a gagné 335 MAD",
+      "Loubna a gagné dans la roue 41 MAD",
+      "Abdelaziz a gagné 170 MAD",
+      "Fatiha a gagné dans la roue 42 MAD",
+      "Taha a gagné 265 MAD",
+      "Zohra a gagné dans la roue 43 MAD",
+      "Noureddine a gagné 225 MAD",
+      "Halima a gagné dans la roue 44 MAD",
+      "Smail a gagné 315 MAD",
+      "Douae a gagné dans la roue 45 MAD",
+      "Abdelmajid a gagné 135 MAD",
+      "Najoua a gagné dans la roue 46 MAD",
+      "Miloud a gagné 255 MAD",
+      "Soumia a gagné dans la roue 47 MAD",
+      "Hakim a gagné 245 MAD",
+      "Nisrine a gagné dans la roue 48 MAD",
+      "Abderrahman a gagné 205 MAD",
+      "Chafia a gagné dans la roue 49 MAD",
+      "Bouchaib a gagné 365 MAD",
+      "Rahima a gagné dans la roue 50 MAD"
+    ];
+
+    const getRandomMessage = () => {
+      const randomIndex = Math.floor(Math.random() * winningMessages.length);
+      return winningMessages[randomIndex];
+    };
+
+    // Set initial message
+    setRandomWinningMessage(getRandomMessage());
+
+    const interval = setInterval(() => {
+      setRandomWinningMessage(getRandomMessage());
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleGeneratePromo = async () => {
     setPromoError("");
@@ -3641,6 +3760,22 @@ if (loginTimeStr) {
               )}
 
             </>
+          )}
+
+          {/* Random User Winnings Card */}
+          {activeSection === "overview" && (
+            <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border border-indigo-700/50 rounded-2xl p-6 mb-6 animate-pulse">
+              <div className="flex items-center gap-2 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-indigo-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-sm font-semibold text-indigo-300">Derniers gains</h3>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-white mb-1">{randomWinningMessage}</p>
+                <p className="text-xs text-slate-400">Actualisation dans 2 secondes...</p>
+              </div>
+            </div>
           )}
 
           {/* REFERRALS */}
