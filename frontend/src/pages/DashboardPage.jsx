@@ -448,7 +448,7 @@ export default function DashboardPage() {
       sidebarWithdraw: "Retrait",
       sidebarMenuTitle: "Menu",
 
-      menuOverview: "Vue d'ensemble",
+      menuOverview: "Vue",
           menuHistory: "Historique dépôts/retraits",
           menuProfile: "Paramètres du profil",
           menuBank: "Infos bancaires",
@@ -4578,7 +4578,7 @@ if (loginTimeStr) {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
               </svg>
-              <span className="text-xs font-medium">Vue d'ensemble</span>
+              <span className="text-xs font-medium">Vue</span>
             </button>
             
             <button
@@ -4593,12 +4593,12 @@ if (loginTimeStr) {
             
             <button
               onClick={() => setActiveSection("vip")}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "vip" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+              className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl transition-all ${activeSection === "vip" ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30" : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20"}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 mb-1 drop-shadow">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-              <span className="text-xs font-medium">Upgrade VIP</span>
+              <span className="text-xs font-bold">Upgrade VIP</span>
             </button>
             
             <button
