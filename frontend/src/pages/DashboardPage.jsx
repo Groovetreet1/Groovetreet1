@@ -2920,6 +2920,21 @@ if (loginTimeStr) {
                 </section>
               ) : selectedPlatform === null ? (
                 <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
+                  {/* Random User Winnings Card */}
+                  {activeSection === "overview" && (
+                    <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border border-indigo-700/50 rounded-2xl p-6 mb-6 animate-pulse col-span-1 sm:col-span-2 lg:col-span-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-indigo-400">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 className="text-sm font-semibold text-indigo-300">Derniers gains</h3>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-white mb-1">{randomWinningMessage}</p>
+                        <p className="text-xs text-slate-400">Actualisation dans 2 secondes...</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <p className="text-xs text-slate-400">{L.overviewBalanceTitle}</p>
@@ -3762,21 +3777,7 @@ if (loginTimeStr) {
             </>
           )}
 
-          {/* Random User Winnings Card */}
-          {activeSection === "overview" && (
-            <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border border-indigo-700/50 rounded-2xl p-6 mb-6 animate-pulse">
-              <div className="flex items-center gap-2 mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-indigo-400">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h3 className="text-sm font-semibold text-indigo-300">Derniers gains</h3>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-white mb-1">{randomWinningMessage}</p>
-                <p className="text-xs text-slate-400">Actualisation dans 2 secondes...</p>
-              </div>
-            </div>
-          )}
+
 
           {/* REFERRALS */}
           {activeSection === "referrals" && (
