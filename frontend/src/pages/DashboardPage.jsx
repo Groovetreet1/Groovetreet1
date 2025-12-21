@@ -138,6 +138,7 @@ export default function DashboardPage() {
   const statusCacheKey = "dashboard_status_cache";
   
   const [activeSection, setActiveSection] = useState("overview");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const navigate = useNavigate();
 
@@ -425,7 +426,6 @@ export default function DashboardPage() {
   const [showBalance, setShowBalance] = useState(false);
   const [toast, setToast] = useState(null);
   const [supportOpen, setSupportOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
   const vipDaysLeft =
     vipExpiresAt && !Number.isNaN(vipExpiresAt.getTime())
@@ -2318,13 +2318,10 @@ if (loginTimeStr) {
   // Filtrer les liens de la sidebar selon le niveau VIP
   const sidebarLinks = [
     { id: "overview", label: L.menuOverview },
-    { id: "history", label: L.menuHistory },
-    { id: "profile", label: L.menuProfile },
-    { id: "bank", label: L.menuBank },
-    // Code promo visible uniquement pour les VIP
-    ...(user?.vipLevel === "VIP" ? [{ id: "promo", label: L.menuPromo }] : []),
-    { id: "language", label: L.menuLanguage },
+    { id: "referrals", label: "Parrainage" },
+    { id: "vip", label: "Upgrade VIP" },
     { id: "download", label: L.menuDownload },
+    { id: "profile", label: L.menuProfile },
   ];
 
   return (
@@ -2346,20 +2343,6 @@ if (loginTimeStr) {
       <header className="w-full border-b border-slate-800/50 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 backdrop-blur-md sticky top-0 z-10 shadow-lg shadow-black/20">
         <div className="max-w-6xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Bouton Toggle Sidebar */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-slate-800 transition-all text-slate-400 hover:text-white"
-              aria-label="Toggle menu"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                {sidebarOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                )}
-              </svg>
-            </button>
             <div 
               className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate('/dashboard')}
@@ -2415,30 +2398,7 @@ if (loginTimeStr) {
                 </button>
               </>
             )}
-            {user.role !== "admin" && (
-              <>
-                <button
-                  onClick={() => navigate("/referrals")}
-                  className="text-[11px] px-3 py-2 rounded-xl bg-violet-600/20 border border-violet-500/50 hover:bg-violet-600/30 hover:border-violet-400 transition-all font-semibold shadow-lg shadow-violet-500/10 flex items-center gap-1.5 group"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-violet-400 group-hover:scale-110 transition-transform">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                  </svg>
-                  Parrainage
-                </button>
-                {((user?.vipLevel || "").toUpperCase().includes("VIP")) && (
-                  <button
-                    onClick={handleUpgradeVip}
-                    className="text-[11px] px-3 py-2 rounded-xl bg-gradient-to-r from-amber-600/20 to-amber-500/20 border border-amber-500/50 hover:from-amber-600/30 hover:to-amber-500/30 hover:border-amber-400 transition-all font-semibold shadow-lg shadow-amber-500/10 flex items-center gap-1.5 group"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-                    </svg>
-                    Upgrade VIP
-                  </button>
-                )}
-              </>
-            )}
+
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications((s) => !s)}
@@ -2558,12 +2518,10 @@ if (loginTimeStr) {
         </div>
       </header>
 
-      {/* CONTENU AVEC SIDEBAR */}
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6 flex flex-col lg:flex-row gap-3 sm:gap-4 lg:h-[calc(100vh-80px)]">
-        {/* SIDEBAR */}
-        <aside className={`w-full lg:w-96 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800/50 rounded-xl sm:rounded-2xl shadow-xl overflow-y-auto custom-scrollbar flex-shrink-0 transition-all duration-300 ${
-          sidebarOpen ? 'translate-x-0 opacity-100' : 'lg:-translate-x-full lg:absolute lg:opacity-0 lg:pointer-events-none hidden lg:block'
-        }`}>
+      {/* CONTENU SANS SIDEBAR */}
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6 gap-3 sm:gap-4 lg:h-[calc(100vh-80px)]">
+        {/* SIDEBAR - Hidden since navigation is now at the bottom */}
+        <aside className="hidden">
           <div className="p-5 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-pink-600/20 border-b border-slate-800/50">
             {/* Avatar et nom */}
             <div className="flex flex-col items-center text-center mb-4">
@@ -2701,7 +2659,6 @@ if (loginTimeStr) {
                   key={link.id}
                   onClick={() => {
                     setActiveSection(link.id);
-                    setSidebarOpen(false);
                   }}
                   className={`w-full text-left text-base px-5 py-4 rounded-xl transition-all duration-200 flex items-center gap-4 group ${
                     activeSection === link.id
@@ -2717,24 +2674,15 @@ if (loginTimeStr) {
                   {link.label}
                 </button>
               ))}
-              <button
-                onClick={handleLogout}
-                className="w-full text-left text-base px-5 py-4 rounded-xl transition-all bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/20 font-semibold mt-6 flex items-center gap-4 group"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 group-hover:rotate-12 transition-transform">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                </svg>
-                {L.logout}
-              </button>
+              
+
             </div>
           </nav>
           </div>
         </aside>
 
         {/* CONTENU PRINCIPAL */}
-        <main className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-300 ${
-          sidebarOpen ? '' : 'lg:ml-0'
-        }`}>
+        <main className="flex-1 overflow-y-auto custom-scrollbar" style={{ paddingBottom: '80px' }}>
           {/* OVERVIEW */}
           {activeSection === "overview" && (
             <>
@@ -2852,7 +2800,7 @@ if (loginTimeStr) {
                   </div>
                 </section>
               ) : selectedPlatform === null ? (
-                <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
+                <section className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
                   <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
                     <div className="flex items-center justify-center gap-2 mb-3">
                       <p className="text-xs text-slate-400">{L.overviewBalanceTitle}</p>
@@ -2868,91 +2816,104 @@ if (loginTimeStr) {
                     <p className="text-2xl font-semibold mb-2">
                       {showBalance ? `${((user.balanceCents || 0) / 100).toFixed(2)} MAD` : "••••••"}
                     </p>
-                    <p className="text-[11px] text-emerald-300">{L.overviewWelcome}</p>
-                  </div>
-                  
-                  {/* Carte Limite Quotidienne - Affichée seulement pour VIP */}
-                  {isUserVip && dailyLimit > 0 && (
-                    <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700 flex flex-col items-center justify-center text-center">
-                      <p className="text-xs text-slate-400 mb-3">Gains d'aujourd'hui</p>
-                      <p className="text-3xl font-bold text-white mb-2">
-                        {(todayEarnings / 100).toFixed(2)} MAD
-                      </p>
-                      <p className="text-sm text-slate-400 mb-4">
-                        sur {(dailyLimit / 100).toFixed(2)} MAD
-                      </p>
-                      {/* Barre de progression */}
-                      <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-emerald-600"
-                          style={{ width: `${Math.min(100, (todayEarnings / dailyLimit) * 100)}%` }}
-                        />
-                      </div>
+                    <p className="text-[11px] text-emerald-300 mb-3">{L.overviewWelcome}</p>
+                    
+                    {/* Deposit and Withdrawal Buttons */}
+                    <div className="flex gap-2 w-full mt-2">
+                      {/* Deposit Button - Always visible */}
+                      <button
+                        onClick={openDepositModal}
+                        className="flex-1 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 font-semibold transition-colors"
+                      >
+                        Dépôt
+                      </button>
+                      
+                      {/* Withdrawal Button - Only for VIP users */}
+                      {isUserVip && (
+                        <button
+                          onClick={handleWithdrawClick}
+                          className="flex-1 py-2 text-xs rounded-lg bg-amber-500 hover:bg-amber-600 font-semibold transition-colors"
+                        >
+                          Retrait
+                        </button>
+                      )}
                     </div>
-                  )}
-                  
-                  <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
-                    <p className="text-xs text-slate-400 mb-3">Code d'invitation</p>
-                    <p className="text-2xl font-semibold mb-2 tracking-[0.08em] text-indigo-300">
-                      {referrals?.inviteCode || user.inviteCode || "—"}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Filleuls : {referrals?.invitedCount ?? 0} — Gains : {((referrals?.totalBonusCents ?? 0) / 100).toFixed(2)} MAD
-                    </p>
-                    {referralError && <p className="text-[10px] text-red-400 mt-1">{referralError}</p>}
                   </div>
-
-                  <div
-                    className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center ${
-                      isUserVip
-                        ? "bg-gradient-to-br from-indigo-700 via-purple-700 to-amber-500 border border-amber-300/60 shadow-[0_10px_35px_rgba(234,179,8,0.25)] text-white"
-                        : "bg-slate-800/80 border border-slate-700"
-                    }`}
-                  >
-                    {isUserVip && (
-                      <>
-                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.15),transparent_40%),radial-gradient(circle_at_40%_80%,rgba(255,255,255,0.12),transparent_35%)]" />
-                        <span className="pointer-events-none absolute top-2 right-4 text-amber-200 text-xl animate-pulse">✦</span>
-                        <span className="pointer-events-none absolute bottom-4 left-6 text-indigo-100 animate-ping">✦</span>
-                        <span className="pointer-events-none absolute top-8 left-10 text-amber-100 animate-ping">✦</span>
-                      </>
-                    )}
-                    {(user?.dailyRateCents || 0) >= 2000 && (
-                      <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10">
-                        <div className="text-center px-4">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-emerald-400 mx-auto mb-2">
-                            <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
-                          </svg>
-                          <p className="text-sm font-bold text-emerald-400 mb-1">Plan Maximum</p>
-                          <p className="text-xs text-slate-300">ELITE 500 MAD</p>
+                  
+                  {/* Container for Status and Earnings Cards - Same Line */}
+                  <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+                    {/* Carte Limite Quotidienne - Affichée seulement pour VIP */}
+                    {isUserVip && dailyLimit > 0 && (
+                      <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700 flex flex-col items-center justify-center text-center">
+                        <p className="text-xs text-slate-400 mb-3">Gains d'aujourd'hui</p>
+                        <p className="text-3xl font-bold text-white mb-2">
+                          {(todayEarnings / 100).toFixed(2)} MAD
+                        </p>
+                        <p className="text-sm text-slate-400 mb-4">
+                          sur {(dailyLimit / 100).toFixed(2)} MAD
+                        </p>
+                        {/* Barre de progression */}
+                        <div className="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-emerald-600"
+                            style={{ width: `${Math.min(100, (todayEarnings / dailyLimit) * 100)}%` }}
+                          />
                         </div>
                       </div>
                     )}
-                    <p className="text-xs text-slate-400 mb-3">{L.overviewVipTitle}</p>
-                    <p className="text-2xl font-semibold mb-1">
-                      {vipLabel}
-                    </p>
-                    {isUserVip && vipPlanAmount && (
-                      <p className="text-sm font-medium text-amber-300 mb-2">
-                        Plan {vipPlanAmount}
+                    
+                    <div
+                      className={`relative overflow-hidden rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center ${
+                        isUserVip
+                          ? "bg-gradient-to-br from-indigo-700 via-purple-700 to-amber-500 border border-amber-300/60 shadow-[0_10px_35px_rgba(234,179,8,0.25)] text-white"
+                          : "bg-slate-800/80 border border-slate-700"
+                      }`}
+                    >
+                      {isUserVip && (
+                        <>
+                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.15),transparent_40%),radial-gradient(circle_at_40%_80%,rgba(255,255,255,0.12),transparent_35%)]" />
+                          <span className="pointer-events-none absolute top-2 right-4 text-amber-200 text-xl animate-pulse">✦</span>
+                          <span className="pointer-events-none absolute bottom-4 left-6 text-indigo-100 animate-ping">✦</span>
+                          <span className="pointer-events-none absolute top-8 left-10 text-amber-100 animate-ping">✦</span>
+                        </>
+                      )}
+                      {(user?.dailyRateCents || 0) >= 2000 && (
+                        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10">
+                          <div className="text-center px-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-emerald-400 mx-auto mb-2">
+                              <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-sm font-bold text-emerald-400 mb-1">Plan Maximum</p>
+                            <p className="text-xs text-slate-300">ELITE 500 MAD</p>
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-400 mb-3">{L.overviewVipTitle}</p>
+                      <p className="text-2xl font-semibold mb-1">
+                        {vipLabel}
                       </p>
-                    )}
-                    <p className={`text-[11px] ${isUserVip ? "text-amber-100" : "text-indigo-300"}`}>
-                      {vipExpiryText
-                        ? vipExpiryText
-                        : L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
-                    </p>
-                    {/* Trial days remaining for FREE users only */}
-                    {!isUserVip && !trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && (
-                      <div className="w-full mt-3 pt-3 border-t border-slate-600 flex items-center justify-center gap-2">
-                        <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-blue-400 text-xs">
-                          {(L.trialDaysRemaining || '{days} jour(s) restant(s)').replace('{days}', trialDaysRemaining)}
-                        </span>
-                      </div>
-                    )}
+                      {isUserVip && vipPlanAmount && (
+                        <p className="text-sm font-medium text-amber-300 mb-2">
+                          Plan {vipPlanAmount}
+                        </p>
+                      )}
+                      <p className={`text-[11px] ${isUserVip ? "text-amber-100" : "text-indigo-300"}`}>
+                        {vipExpiryText
+                          ? vipExpiryText
+                          : L.overviewVipHint || (isUserVip ? "Merci d'être VIP ✨" : "")}
+                      </p>
+                      {/* Trial days remaining for FREE users only */}
+                      {!isUserVip && !trialExpired && trialDaysRemaining !== null && trialDaysRemaining > 0 && (
+                        <div className="w-full mt-3 pt-3 border-t border-slate-600 flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-blue-400 text-xs">
+                            {(L.trialDaysRemaining || '{days} jour(s) restant(s)').replace('{days}', trialDaysRemaining)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </section>
               ) : null}
@@ -3682,12 +3643,90 @@ if (loginTimeStr) {
             </>
           )}
 
+          {/* REFERRALS */}
+          {activeSection === "referrals" && (
+            <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold tracking-tight">Parrainage</h2>
+                <button 
+                  onClick={() => setActiveSection("overview")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
+              
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 mb-6">
+                {/* Code d'invitation */}
+                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
+                  <p className="text-xs text-slate-400 mb-3">Votre code d'invitation</p>
+                  <p className="text-2xl font-semibold mb-2 tracking-[0.08em] text-indigo-300">
+                    {referrals?.inviteCode || user.inviteCode || "—"}
+                  </p>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(referrals?.inviteCode || user.inviteCode);
+                      setToast({ message: "Code copié!", type: "success" });
+                    }}
+                    className="mt-3 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    Copier le code
+                  </button>
+                </div>
+                
+                {/* Statistiques */}
+                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center text-center">
+                  <p className="text-xs text-slate-400 mb-3">Vos filleuls</p>
+                  <p className="text-2xl font-semibold mb-1">
+                    {referrals?.invitedCount ?? 0}
+                  </p>
+                  <p className="text-sm text-slate-400 mb-3">Total gains</p>
+                  <p className="text-xl font-bold text-emerald-400">
+                    {((referrals?.totalBonusCents ?? 0) / 100).toFixed(2)} MAD
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 sm:p-6">
+                <h3 className="text-md font-semibold mb-3">Comment ça marche?</h3>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex items-start">
+                    <span className="text-emerald-400 mr-2">✓</span>
+                    <span>Partagez votre code d'invitation avec vos amis</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-emerald-400 mr-2">✓</span>
+                    <span>Ils s'inscrivent en utilisant votre code</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-emerald-400 mr-2">✓</span>
+                    <span>Vous touchez une commission sur leurs gains</span>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          )}
+
           {/* HISTORIQUE COMPLET */}
           {activeSection === "history" && (
             <section className="mb-10">
-              <h2 className="text-lg font-semibold tracking-tight mb-4">
-                {L.historyFullTitle}
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold tracking-tight">
+                  {L.historyFullTitle}
+                </h2>
+                <button 
+                  onClick={() => setActiveSection("profile")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
               {historyLoading ? (
                 <p className="text-sm text-slate-400">
                   {L.historyLoading}
@@ -3791,21 +3830,19 @@ if (loginTimeStr) {
                 {L.profileSectionTitle}
               </h2>
               <p className="text-[11px] text-slate-400 mb-4">{L.profileHint}</p>
-
-              <div className="mb-4">
-                <label className="block text-xs mb-1">
-                  {L.avatarLabel}
-                </label>
-                <div className="flex items-center gap-3">
+              
+              {/* Profile Info Card */}
+              <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-5 mb-6 shadow-lg">
+                <div className="flex items-center gap-4 mb-4">
                   {(() => {
                     const vipStyle = getVipBorderStyle(user?.dailyRateCents);
                     if (vipStyle) {
                       return (
                         <div className="relative">
-                          {/* Effet de lueur animé */}
+                          {/* VIP Border Effect */}
                           <div className={`absolute inset-0 rounded-full ${vipStyle.glow} blur-lg animate-pulse`}></div>
                           
-                          {/* Animation spéciale Diamond - cercles rotatifs */}
+                          {/* VIP Animated Circles */}
                           {vipStyle.animated && (
                             <>
                               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 animate-spin" style={{ animationDuration: '3s' }}></div>
@@ -3813,7 +3850,7 @@ if (loginTimeStr) {
                             </>
                           )}
                           
-                          {/* Bordure dégradée VIP */}
+                          {/* VIP Gradient Border */}
                           <div className={`relative p-0.5 rounded-full bg-gradient-to-r ${vipStyle.gradient} shadow-xl ${vipStyle.shadow} ${vipStyle.animated ? 'animate-pulse' : ''}`}>
                             <img
                               src={avatarUrlFull || generateDefaultAvatar(user.id, user.fullName)}
@@ -3822,7 +3859,7 @@ if (loginTimeStr) {
                             />
                           </div>
                           
-                          {/* Badge VIP */}
+                          {/* VIP Badge */}
                           <div className={`absolute -bottom-0.5 -right-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r ${vipStyle.gradient} border border-slate-900 flex items-center justify-center shadow-md ${vipStyle.animated ? 'animate-bounce' : ''}`}>
                             <span className="text-[7px] font-black text-slate-900">{vipStyle.label}</span>
                           </div>
@@ -3838,120 +3875,242 @@ if (loginTimeStr) {
                       );
                     }
                   })()}
-                  <div className="flex-1">
-                    {avatarError && (
-                      <p className="text-[11px] text-red-400 mb-1">
-                        {avatarError}
-                      </p>
-                    )}
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarFileChange}
-                        className="hidden"
-                        id="avatar-upload"
-                      />
-                      <label
-                        htmlFor="avatar-upload"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 hover:border-indigo-500 bg-slate-800/50 cursor-pointer transition-all hover:bg-slate-800 group"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
-                          />
-                        </svg>
-                        <span className="text-[11px] text-slate-300 group-hover:text-indigo-300 transition-colors">
-                          Choisir une photo
-                        </span>
-                      </label>
+                  
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{user.fullName || "Utilisateur"}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold">ID</span>
+                      <span className="text-sm font-mono text-slate-300 bg-slate-700/50 px-2 py-1 rounded">#{user.id}</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      {L.avatarHint}
-                    </p>
-                    {avatarUploading && (
-                      <p className="text-[11px] text-slate-300 mt-1">
-                        {L.avatarUploading}
-                      </p>
-                    )}
+                    <p className="text-sm text-slate-300">{user.email}</p>
                   </div>
                 </div>
+                
+                <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Statut</p>
+                    <p className="text-sm font-semibold text-amber-300">{user.vipLevel === "VIP" ? "VIP" : "Gratuit"}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Gains d'aujourd'hui</p>
+                    <p className="text-sm font-semibold text-emerald-300">{((todayEarnings || 0) / 100).toFixed(2)} MAD</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-400">Inscrit le</p>
+                    <p className="text-sm font-semibold text-slate-300">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Edit Profile Button */}
+                <div className="mt-4 pt-4 border-t border-slate-700/50">
+                  <button
+                    onClick={() => setIsEditingProfile(!isEditingProfile)}
+                    className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-medium text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                    {isEditingProfile ? "Annuler l'édition" : "Modifier le profil"}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Profile Edit Form */}
+              {isEditingProfile && (
+                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 mb-6">
+                  <h3 className="text-sm font-semibold mb-4 text-slate-200">Modifier les informations du profil</h3>
+                  <form
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      alert(
+                        "Ici tu pourras envoyer les nouvelles infos au backend."
+                      );
+                    }}
+                  >
+                    <div>
+                      <label className="block text-xs mb-1 text-slate-300">
+                        {L.profileFullNameLabel}
+                      </label>
+                      <input
+                        type="text"
+                        value={user.fullName || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setUser((prev) => {
+                            if (!prev) return prev;
+                            const updated = { ...prev, fullName: value };
+                            localStorage.setItem("user", JSON.stringify(updated));
+                            return updated;
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs mb-1 text-slate-300">
+                        {L.profileEmailLabel}
+                      </label>
+                      <input
+                        type="email"
+                        value={user.email || ""}
+                        disabled
+                        className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-400"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {L.profileEmailNote}
+                      </p>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label className="block text-xs mb-1 text-slate-300">
+                        {L.avatarLabel}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        {avatarError && (
+                          <p className="text-[11px] text-red-400 mb-1">
+                            {avatarError}
+                          </p>
+                        )}
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarFileChange}
+                            className="hidden"
+                            id="avatar-upload"
+                          />
+                          <label
+                            htmlFor="avatar-upload"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 hover:border-indigo-500 bg-slate-800/50 cursor-pointer transition-all hover:bg-slate-800 group"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                              className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
+                              />
+                            </svg>
+                            <span className="text-[11px] text-slate-300 group-hover:text-indigo-300 transition-colors">
+                              Choisir une photo
+                            </span>
+                          </label>
+                        </div>
+                        <p className="text-[10px] text-slate-500">
+                          {L.avatarHint}
+                        </p>
+                        {avatarUploading && (
+                          <p className="text-[11px] text-slate-300">
+                            {L.avatarUploading}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      {L.profileSaveButton}
+                    </button>
+                  </form>
+                </div>
+              )}
+              
+              {/* Navigation Links - Modern Design */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <button 
+                  onClick={() => setActiveSection("history")}
+                  className="text-sm py-3 px-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 hover:from-slate-700 hover:to-slate-700 text-slate-200 text-left transition-all duration-200 shadow-sm hover:shadow-md border border-slate-600/30 hover:border-slate-500/50 flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Historique
+                </button>
+                <button 
+                  onClick={() => setActiveSection("bank")}
+                  className="text-sm py-3 px-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 hover:from-slate-700 hover:to-slate-700 text-slate-200 text-left transition-all duration-200 shadow-sm hover:shadow-md border border-slate-600/30 hover:border-slate-500/50 flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                  </svg>
+                  Banque
+                </button>
+                <button 
+                  onClick={() => setActiveSection("language")}
+                  className="text-sm py-3 px-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 hover:from-slate-700 hover:to-slate-700 text-slate-200 text-left transition-all duration-200 shadow-sm hover:shadow-md border border-slate-600/30 hover:border-slate-500/50 flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+                  </svg>
+                  Langue
+                </button>
+                {user?.vipLevel === "VIP" && (
+                  <button 
+                    onClick={() => setActiveSection("promo")}
+                    className="text-sm py-3 px-4 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-800/50 hover:from-slate-700 hover:to-slate-700 text-slate-200 text-left transition-all duration-200 shadow-sm hover:shadow-md border border-slate-600/30 hover:border-slate-500/50 flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                    </svg>
+                    Promo
+                  </button>
+                )}
+
               </div>
 
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert(
-                    "Ici tu pourras envoyer les nouvelles infos au backend."
-                  );
-                }}
-              >
-                <div>
-                  <label className="block text-xs mb-1">
-                    {L.profileFullNameLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={user.fullName || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setUser((prev) => {
-                        if (!prev) return prev;
-                        const updated = { ...prev, fullName: value };
-                        localStorage.setItem("user", JSON.stringify(updated));
-                        return updated;
-                      });
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-xs mb-1">
-                    {L.profileEmailLabel}
-                  </label>
-                  <input
-                    type="email"
-                    value={user.email || ""}
-                    disabled
-                    className="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm text-slate-400"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    {L.profileEmailNote}
-                  </p>
-                </div>
 
+
+              
+              {/* Logout Button */}
+              <div className="pt-6 mt-6 border-t border-slate-800">
                 <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700"
+                  onClick={handleLogout}
+                  className="w-full py-3 rounded-lg transition-all bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/20 font-semibold flex items-center justify-center gap-2"
                 >
-                  {L.profileSaveButton}
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                  {L.logout}
                 </button>
-              </form>
+              </div>
             </section>
           )}
 
           {/* BANQUE */}
           {activeSection === "bank" && (
             <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
-              <h2 className="text-sm font-semibold tracking-tight mb-3">
-                {L.bankSectionTitle}
-              </h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-sm font-semibold tracking-tight">
+                  {L.bankSectionTitle}
+                </h2>
+                <button 
+                  onClick={() => setActiveSection("profile")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
               <p className="text-[11px] text-slate-400 mb-4">{L.bankHint}</p>
               <form className="space-y-4" onSubmit={handleSaveBank}>
                 <div>
@@ -4023,9 +4182,20 @@ if (loginTimeStr) {
           {/* LANGUE */}
           {activeSection === "language" && (
             <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
-              <h2 className="text-sm font-semibold tracking-tight mb-3">
-                {L.languageSectionTitle}
-              </h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-sm font-semibold tracking-tight">
+                  {L.languageSectionTitle}
+                </h2>
+                <button 
+                  onClick={() => setActiveSection("profile")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
               <p className="text-[11px] text-slate-400 mb-4">
                 {L.languageHint}
               </p>
@@ -4071,9 +4241,20 @@ if (loginTimeStr) {
           {/* DOWNLOAD APP */}
           {activeSection === "download" && (
             <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
-              <h2 className="text-sm font-semibold tracking-tight mb-3">
-                {L.downloadSectionTitle}
-              </h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-sm font-semibold tracking-tight">
+                  {L.downloadSectionTitle}
+                </h2>
+                <button 
+                  onClick={() => setActiveSection("overview")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
               <p className="text-[11px] text-slate-400 mb-4">
                 {L.downloadHint}
               </p>
@@ -4113,7 +4294,18 @@ if (loginTimeStr) {
           {/* PROMO CODE (user) */}
           {activeSection === "promo" && (
             <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
-              <h2 className="text-sm font-semibold tracking-tight mb-3">Code promo</h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-sm font-semibold tracking-tight">Code promo</h2>
+                <button 
+                  onClick={() => setActiveSection("profile")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
               <p className="text-[11px] text-slate-400 mb-3">
                 Utilisable une seule fois par utilisateur. Saisis ton code puis valide.
               </p>
@@ -4238,12 +4430,25 @@ if (loginTimeStr) {
           )}
 
 
+
+
           {/* SUPPORT */}
   {activeSection === "support" && (
     <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
-      <h2 className="text-sm font-semibold tracking-tight mb-3">
-        {L.supportSectionTitle}
-      </h2>
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-sm font-semibold tracking-tight">
+          {L.supportSectionTitle}
+        </h2>
+        <button 
+          onClick={() => setActiveSection("profile")}
+          className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Retour
+        </button>
+      </div>
               <p className="text-[11px] text-slate-400 mb-4">
                 {L.supportHint}
               </p>
@@ -4288,8 +4493,33 @@ if (loginTimeStr) {
     </section>
   )}
 
+          {/* VIP UPGRADE */}
+          {activeSection === "vip" && (
+            <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-sm font-semibold tracking-tight">Upgrade to VIP</h2>
+                <button 
+                  onClick={() => setActiveSection("overview")}
+                  className="text-xs py-1.5 px-3 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  </svg>
+                  Retour
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 mb-4">Devenir membre VIP pour accéder à des avantages exclusifs.</p>
+              <button
+                onClick={handleUpgradeVip}
+                className="w-full py-3 text-base rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
+              >
+                Go VIP
+              </button>
+            </section>
+          )}
+
       {/* Floating support button */}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2">
         {supportOpen && (
           <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-xl p-3 w-64">
             <div className="flex justify-between items-center mb-2">
@@ -4337,6 +4567,61 @@ if (loginTimeStr) {
         </button>
       </div>
         </main>
+
+        {/* BOTTOM NAVIGATION */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-b from-slate-900 to-slate-950 border-t border-slate-800/50 p-3 shadow-2xl shadow-black/50 z-10">
+          <div className="max-w-6xl mx-auto grid grid-cols-5 gap-1">
+            <button
+              onClick={() => setActiveSection("overview")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "overview" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+              <span className="text-xs font-medium">Vue d'ensemble</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSection("referrals")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "referrals" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.522c-.126.252-.256.499-.392.741m5.058-.741a9.094 9.094 0 01.392-.741M12 12.75a5.995 5.995 0 00-5.058 2.522C6.012 15.75 6 15.973 6 16.2v.75" />
+              </svg>
+              <span className="text-xs font-medium">Parrainage</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSection("vip")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "vip" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+              </svg>
+              <span className="text-xs font-medium">Upgrade VIP</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSection("download")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "download" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span className="text-xs font-medium">Télécharger</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSection("profile")}
+              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all ${activeSection === "profile" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mb-1">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+              <span className="text-xs font-medium">Profil</span>
+            </button>
+          </div>
+        </nav>
       </div>
 
       {/* MODAL VIDÉO */}
