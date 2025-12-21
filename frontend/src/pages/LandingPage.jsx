@@ -18,7 +18,6 @@ export default function LandingPage() {
   const texts = {
     fr: {
       appTitle: "Windelevery!",
-      appSubtitle: "Plateforme de missions rémunérées (vidéos & MAD)",
       login: "Login",
       signup: "Sign up",
       heroTitleLine1: "Regarde des vidéos, valide des tâches,",
@@ -30,6 +29,7 @@ export default function LandingPage() {
       ctaPrimary: "Commencer maintenant",
       ctaSecondary: "J’ai déjà un compte",
       badge: "🪙 Gagne en regardant des vidéos",
+      downloadApp: "Télécharger l'application Windelevery",
       card1Title: "🎥 Tâches vidéo",
       card1Text: "Regarde au moins 15 secondes puis valide la mission.",
       card2Title: "💳 Dépôts & retraits",
@@ -50,7 +50,6 @@ export default function LandingPage() {
     },
     ar: {
       appTitle: "Windelevery",
-      appSubtitle: "منصّة المهام لي كتخلّص بالدرهم المغربي",
       login: "دخول",
       signup: "سجّل",
       heroTitleLine1: "شوف الفيديو، كمّل المهمة،",
@@ -62,6 +61,7 @@ export default function LandingPage() {
       ctaPrimary: "بدا دابا",
       ctaSecondary: "عندي حساب",
       badge: "🪙 ربح وانت كتفرج فالفيديو",
+      downloadApp: "تحميل تطبيق Windelevery",
       card1Title: "🎥 مهام الفيديو",
       card1Text: "خاصك تشوف على الأقل 15 ثانية ومن بعد كتأكد المهمة.",
       card2Title: "💳 شحن و سحب",
@@ -143,9 +143,6 @@ export default function LandingPage() {
               <div className="text-sm font-semibold tracking-tight">
                 {t.appTitle}
               </div>
-              <div className="text-[11px] text-slate-400">
-                {t.appSubtitle}
-              </div>
             </div>
           </div>
 
@@ -172,20 +169,6 @@ export default function LandingPage() {
                 {t.langAr}
               </button>
             </div>
-
-            {/* Login / Sign up */}
-            <Link
-              to="/login"
-              className="text-[11px] px-3 py-2 rounded-lg border border-slate-700 hover:bg-slate-800"
-            >
-              {t.login}
-            </Link>
-            <Link
-              to="/register"
-              className="text-[11px] px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold shadow-lg shadow-indigo-500/30"
-            >
-              {t.signup}
-            </Link>
           </div>
         </div>
       </header>
@@ -208,7 +191,9 @@ export default function LandingPage() {
 
             <p className="text-base text-slate-400 mb-8">{t.heroText2}</p>
 
-            <div className="flex flex-wrap gap-4 justify-center">
+
+            
+            <div className="flex flex-wrap gap-4 justify-center mt-6">
               <Link
                 to="/register"
                 className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-base font-semibold shadow-lg shadow-indigo-500/30"
@@ -221,6 +206,21 @@ export default function LandingPage() {
               >
                 {t.ctaSecondary}
               </Link>
+            </div>
+            
+            {/* Download APK Button */}
+            <div className="mt-6">
+              <a
+                href="/promoapp.apk"
+                download="windelevery.apk"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-base font-semibold shadow-lg shadow-emerald-500/30 transition-all"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                {t.downloadApp}
+              </a>
+              <p className="text-xs text-slate-400 mt-2">Fichier APK pour Android</p>
             </div>
           </div>
         </div>
@@ -253,89 +253,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* CARTE DE PRÉSENTATION ET COORDONNÉES */}
-          <div className="grid grid-cols-2 gap-4 sm:gap-8 mt-8 sm:mt-12">
-            {/* Carte À propos */}
-            <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl hover:shadow-indigo-500/10 transition-shadow">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mb-3 sm:mb-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                  ✨
-                </div>
-                <div className="text-center sm:text-left">
-                  <h3 className="text-sm sm:text-xl font-semibold text-white">
-                    {t.aboutTitle}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 hidden sm:block">
-                    {t.aboutDescription}
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs sm:text-base text-slate-300 leading-relaxed mb-3 sm:mb-6 line-clamp-3 sm:line-clamp-none">
-                {t.aboutText}
-              </p>
-              <div className="flex flex-wrap gap-1.5 sm:gap-3">
-                <span className="px-2 py-1 sm:px-4 sm:py-2 bg-indigo-500/20 text-indigo-300 rounded-full text-[10px] sm:text-sm">
-                  💰 Paiements
-                </span>
-                <span className="px-2 py-1 sm:px-4 sm:py-2 bg-emerald-500/20 text-emerald-300 rounded-full text-[10px] sm:text-sm">
-                  ⚡ Rapide
-                </span>
-                <span className="px-2 py-1 sm:px-4 sm:py-2 bg-purple-500/20 text-purple-300 rounded-full text-[10px] sm:text-sm">
-                  🔒 Fiable
-                </span>
-              </div>
-            </div>
 
-            {/* Carte Contact */}
-            <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl hover:shadow-purple-500/10 transition-shadow">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mb-3 sm:mb-6">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0">
-                  📞
-                </div>
-                <div className="text-center sm:text-left">
-                  <h3 className="text-sm sm:text-xl font-semibold text-white">
-                    {t.contactTitle}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-400 hidden sm:block">
-                    {t.contactSupport}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-2 sm:space-y-4">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-base sm:text-xl">📧</span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] sm:text-sm text-slate-400">Email</p>
-                    <a
-                      href={`mailto:${t.contactEmail}`}
-                      className="text-indigo-400 hover:text-indigo-300 text-xs sm:text-base truncate block"
-                    >
-                      {t.contactEmail}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-base sm:text-xl">📱</span>
-                  <div>
-                    <p className="text-[10px] sm:text-sm text-slate-400">Tél</p>
-                    <a
-                      href={`tel:${t.contactPhone}`}
-                      className="text-indigo-400 hover:text-indigo-300 text-xs sm:text-base"
-                    >
-                      {t.contactPhone}
-                    </a>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-base sm:text-xl">📍</span>
-                  <div>
-                    <p className="text-[10px] sm:text-sm text-slate-400">Adresse</p>
-                    <p className="text-slate-300 text-xs sm:text-base">{t.contactAddress}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </div>
