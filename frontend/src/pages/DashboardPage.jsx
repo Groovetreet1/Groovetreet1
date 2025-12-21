@@ -1136,6 +1136,22 @@ if (loginTimeStr) {
         console.error("Error checking spin wheel:", err);
       }
     };
+
+    // Fetch today's completed stores (for daily reset at midnight)
+    const fetchTodayCompletedStores = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(buildApiUrl("/api/rate-store/today-completed"), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok && data.completedStores) {
+          setCompletedStores(data.completedStores);
+        }
+      } catch (err) {
+        console.error("Error fetching today's completed stores:", err);
+      }
+    };
     
     refreshUserData();
     fetchTasks();
@@ -1145,6 +1161,7 @@ if (loginTimeStr) {
     fetchDailyEarnings();
     fetchAdminOps();
     checkSpinWheel();
+    fetchTodayCompletedStores();
 
     if (parsedUser?.role === "admin") {
       const fetchAdminUsers = async () => {

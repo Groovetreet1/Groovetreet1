@@ -2181,6 +2181,51 @@ app.get("/api/rate-store/history", authMiddleware, async (req, res) => {
   }
 });
 
+// Get today's completed stores (for daily reset)
+app.get("/api/rate-store/today-completed", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Calculate today's start (GMT+1 timezone)
+    const now = new Date();
+    const nowPlus1 = new Date(now.getTime() + 1 * 60 * 60 * 1000);
+    const startUtcForGmtPlus1 = Date.UTC(
+      nowPlus1.getUTCFullYear(),
+      nowPlus1.getUTCMonth(),
+      nowPlus1.getUTCDate(),
+      0, 0, 0
+    ) - 1 * 60 * 60 * 1000;
+    const startDate = new Date(startUtcForGmtPlus1);
+    
+    // Get distinct stores completed today
+    const [rows] = await pool.execute(
+      `SELECT DISTINCT store_name AS storeName
+       FROM rate_store_completions
+       WHERE user_id = ? AND created_at >= ?`,
+      [userId, startDate]
+    );
+    
+    // Count products completed per store today
+    const [countRows] = await pool.execute(
+      `SELECT store_name AS storeName, COUNT(*) as count
+       FROM rate_store_completions
+       WHERE user_id = ? AND created_at >= ?
+       GROUP BY store_name`,
+      [userId, startDate]
+    );
+    
+    // A store is "completed" for FREE users if they've done 2 products from it
+    const completedStores = countRows
+      .filter(row => row.count >= 2)
+      .map(row => row.storeName);
+    
+    return res.json({ completedStores });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 
 // 📸 UPLOAD AVATAR
 app.post(
