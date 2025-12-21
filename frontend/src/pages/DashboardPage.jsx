@@ -455,6 +455,12 @@ export default function DashboardPage() {
           menuLanguage: "Langue",
           menuPromo: "Code promo",
           menuSupport: "Service client",
+          menuDownload: "Télécharger l'app",
+
+      downloadSectionTitle: "Télécharger l'application",
+      downloadHint: "Installez notre application Android pour un accès plus rapide.",
+      downloadButton: "Télécharger l'APK Android",
+      downloadNote: "L'application sera bientôt disponible sur Google Play.",
 
       overviewBalanceTitle: "Solde disponible",
       overviewWelcome: "",
@@ -563,6 +569,12 @@ export default function DashboardPage() {
           menuLanguage: "اللغة",
           menuPromo: "كود پرومو",
           menuSupport: "الدعم",
+          menuDownload: "تحميل التطبيق",
+
+      downloadSectionTitle: "تحميل التطبيق",
+      downloadHint: "ثبت تطبيقنا على الأندرويد باش توصل بسرعة.",
+      downloadButton: "تحميل APK أندرويد",
+      downloadNote: "التطبيق غادي يكون متوفر قريبا على Google Play.",
 
       overviewBalanceTitle: "الفلوس المتاحة (درهم مغربي)",
       overviewWelcome: "",
@@ -668,6 +680,12 @@ export default function DashboardPage() {
           menuLanguage: "Language",
           menuPromo: "Promo code",
           menuSupport: "Support",
+          menuDownload: "Download App",
+
+      downloadSectionTitle: "Download Application",
+      downloadHint: "Install our Android app for faster access.",
+      downloadButton: "Download Android APK",
+      downloadNote: "The app will soon be available on Google Play.",
 
       overviewBalanceTitle: "Available balance",
       overviewWelcome: "",
@@ -2289,6 +2307,7 @@ if (loginTimeStr) {
     // Code promo visible uniquement pour les VIP
     ...(user?.vipLevel === "VIP" ? [{ id: "promo", label: L.menuPromo }] : []),
     { id: "language", label: L.menuLanguage },
+    { id: "download", label: L.menuDownload },
   ];
 
   return (
@@ -4028,6 +4047,48 @@ if (loginTimeStr) {
               <p className="text-[11px] text-slate-300">
                 {L.languageCurrentLabel}:{" "}
                 <span className="font-semibold uppercase">{language}</span>
+              </p>
+            </section>
+          )}
+
+          {/* DOWNLOAD APP */}
+          {activeSection === "download" && (
+            <section className="mb-10 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+              <h2 className="text-sm font-semibold tracking-tight mb-3">
+                {L.downloadSectionTitle}
+              </h2>
+              <p className="text-[11px] text-slate-400 mb-4">
+                {L.downloadHint}
+              </p>
+              
+              {/* Android Download Card */}
+              <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border border-green-700/50 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-green-600/20 rounded-xl flex items-center justify-center">
+                    <svg className="w-10 h-10 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.523 15.342c-.295 0-.585-.08-.835-.237l-5.173-3.234a1.512 1.512 0 010-2.572l5.173-3.234c.25-.156.54-.237.835-.237.854 0 1.55.696 1.55 1.55v6.414c0 .854-.696 1.55-1.55 1.55zM6.477 8.658c.295 0 .585.08.835.237l5.173 3.234a1.512 1.512 0 010 2.572l-5.173 3.234c-.25.156-.54.237-.835.237-.854 0-1.55-.696-1.55-1.55V10.208c0-.854.696-1.55 1.55-1.55z"/>
+                      <path d="M6 18c0 1.105.672 2 1.5 2s1.5-.895 1.5-2-.672-2-1.5-2S6 16.895 6 18zM15 18c0 1.105.672 2 1.5 2s1.5-.895 1.5-2-.672-2-1.5-2-1.5.895-1.5 2zM3 6l3.464 2 3.464-2-3.464-2L3 6zM14.072 6l3.464 2 3.464-2-3.464-2-3.464 2z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-green-300 mb-1">Android</h3>
+                    <p className="text-[11px] text-slate-400">APK - v1.0.0</p>
+                  </div>
+                </div>
+                <a
+                  href="/Windelevery.apk"
+                  download
+                  className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {L.downloadButton}
+                </a>
+              </div>
+              
+              <p className="text-[10px] text-slate-500 text-center">
+                {L.downloadNote}
               </p>
             </section>
           )}
