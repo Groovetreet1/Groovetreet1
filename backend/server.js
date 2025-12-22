@@ -33,6 +33,74 @@ function randomPromoCode(length = 10) {
   return out;
 }
 
+// Helper function to generate realistic names
+function generateRealisticName() {
+  const firstNames = [
+    "Ahmed", "Mohamed", "Youssef", "Ali", "Omar", "Hassan", "Karim", "Mehdi", "Ayoub", "Imad",
+    "Fatima", "Khadija", "Amina", "Samira", "Nadia", "Zineb", "Asmaa", "Hind", "Souad", "Rachida",
+    "Adam", "Ismail", "Yassin", "Bilal", "Hamza", "Marwan", "Oussama", "Reda", "Saad", "Tariq",
+    "Amal", "Hajar", "Manal", "Salma", "Kenza", "Loubna", "Mariam", "Naima", "Siham", "Yasmin"
+  ];
+  
+  const lastNames = [
+    "Alami", "Benali", "Chraibi", "El Fassi", "Hassani", "Idrissi", "Jabri", "Kabbaj", "Lahlou", "Mekkaoui",
+    "Najib", "Ouazzani", "Rhazi", "Saidi", "Tazi", "Zeroual", "Abdelatif", "Bouazza", "Chafik", "Dahbi",
+    "Essaadi", "Fathi", "Ghali", "Hachimi", "Ismaili", "Jilali", "Kamali", "Lamrani", "Mansouri", "Nouri"
+  ];
+  
+  // Randomly decide name format
+  const format = Math.floor(Math.random() * 4);
+  
+  switch(format) {
+    case 0: // First name only
+      return firstNames[Math.floor(Math.random() * firstNames.length)];
+    case 1: // Last name only
+      return lastNames[Math.floor(Math.random() * lastNames.length)];
+    case 2: // First name + Last name
+      return `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+    case 3: // Username style (lowercase with numbers)
+      const chars = "abcdefghijklmnopqrstuvwxyz";
+      const nums = "0123456789";
+      let username = "";
+      const length = 6 + Math.floor(Math.random() * 5); // 6-10 characters
+      
+      // Start with letters
+      for(let i = 0; i < length - 3; i++) {
+        username += chars[Math.floor(Math.random() * chars.length)];
+      }
+      
+      // Add some numbers
+      for(let i = 0; i < 3; i++) {
+        username += nums[Math.floor(Math.random() * nums.length)];
+      }
+      
+      return username;
+    default:
+      return firstNames[Math.floor(Math.random() * firstNames.length)];
+  }
+}
+
+// Helper function to check if a name is logical
+function isNameLogical(name) {
+  if (!name || typeof name !== 'string') return false;
+  
+  // Trim and check if empty
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return false;
+  
+  // Check if it's just numbers
+  if (/^\d+$/.test(trimmed)) return false;
+  
+  // Check if it's too short or too long
+  if (trimmed.length < 2 || trimmed.length > 50) return false;
+  
+  // Check if it contains at least some letters
+  if (!/[a-zA-Z]/.test(trimmed)) return false;
+  
+  // If it passes all checks, it's logical
+  return true;
+}
+
 // Générer une référence unique de 24 chiffres pour les retraits
 function generateWithdrawalReference() {
   // Format: YYYYMMDDHHMMSS + 10 chiffres aléatoires
@@ -562,10 +630,18 @@ app.post("/api/auth/register", async (req, res) => {
   try {
     const { fullName, email, password, invitationCode, inviteCode } = req.body;
 
-    if (!fullName || !email || !password) {
+    // Validate email and password, but handle fullName with logic check
+    if (!email || !password) {
       return res
         .status(400)
-        .json({ message: "Nom, email et mot de passe sont obligatoires." });
+        .json({ message: "Email et mot de passe sont obligatoires." });
+    }
+    
+    // If fullName is not provided or is not logical, generate a realistic name
+    let finalFullName = fullName;
+    if (!fullName || !isNameLogical(fullName)) {
+      finalFullName = generateRealisticName();
+      console.log(`Generated realistic name for user: ${finalFullName}`);
     }
 
     // Code d'invitation (optionnel mais validé s'il est présent)
@@ -609,7 +685,7 @@ app.post("/api/auth/register", async (req, res) => {
     // 4) Insérer dans MySQL
     const [result] = await pool.execute(
       "INSERT INTO users (full_name, email, password_hash, vip_level, role, balance_cents, invite_code, invited_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [fullName, email, passwordHash, "FREE", role, 0, newInviteCode, inviterUserId]
+      [finalFullName, email, passwordHash, "FREE", role, 0, newInviteCode, inviterUserId]
     );
 
     const userId = result.insertId;
@@ -628,7 +704,7 @@ app.post("/api/auth/register", async (req, res) => {
     // 6) Retourner les infos (sans password)
     const user = {
       id: userId,
-      fullName,
+      fullName: finalFullName,
       email,
       vipLevel: "FREE",
       role,
