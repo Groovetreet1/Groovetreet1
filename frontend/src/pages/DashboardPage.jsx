@@ -138,6 +138,7 @@ export default function DashboardPage() {
   const statusCacheKey = "dashboard_status_cache";
   
   const [activeSection, setActiveSection] = useState("overview");
+  const [activeHistoryTab, setActiveHistoryTab] = useState('deposits'); // For history tabs - deposits or withdrawals
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalMessage, setPasswordModalMessage] = useState("");
@@ -3878,97 +3879,117 @@ if (loginTimeStr) {
                   Retour
                 </button>
               </div>
+              
+              {/* History Tabs */}
+              <div className="flex mb-6 border-b border-slate-700">
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${activeHistoryTab === "deposits" ? "text-emerald-400 border-b-2 border-emerald-400" : "text-slate-400 hover:text-slate-300"}`}
+                  onClick={() => setActiveHistoryTab("deposits")}
+                >
+                  {L.historyDepositsTitle}
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${activeHistoryTab === "withdrawals" ? "text-amber-400 border-b-2 border-amber-400" : "text-slate-400 hover:text-slate-300"}`}
+                  onClick={() => setActiveHistoryTab("withdrawals")}
+                >
+                  {L.historyWithdrawalsTitle}
+                </button>
+              </div>
+              
               {historyLoading ? (
                 <p className="text-sm text-slate-400">
                   {L.historyLoading}
                 </p>
               ) : (
-                <div className="grid gap-6 sm:gap-8 grid-cols-1 md:grid-cols-2">
-                  <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-6 sm:p-8">
-                    <h3 className="text-base font-semibold mb-4">
-                      {L.historyDepositsTitle}
-                    </h3>
-                    {history.deposits?.length === 0 ? (
-                      <p className="text-sm text-slate-400">
-                        {L.historyDepositsNone}
-                      </p>
-                    ) : (
-                      <ul className="text-sm space-y-4 text-slate-300">
-                        {history.deposits
-                          .slice()
-                          .sort(
-                            (a, b) =>
-                              new Date(b.createdAt).getTime() -
-                              new Date(a.createdAt).getTime()
-                          )
-                          .map((d) => (
-                            <li
-                              key={d.id}
-                              className="flex items-center justify-between border-b border-slate-700/60 pb-3 last:border-b-0 last:pb-0"
-                            >
-                              <span className="text-base">
-                                {new Date(d.createdAt).toLocaleString()}
-                              </span>
-                              <div className="flex items-center gap-3">
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-6 sm:p-8">
+                  {/* Render deposits or withdrawals based on activeHistoryTab */}
+                  {activeHistoryTab === "deposits" ? (
+                    <>
+                      <h3 className="text-base font-semibold mb-4">
+                        {L.historyDepositsTitle}
+                      </h3>
+                      {history.deposits?.length === 0 ? (
+                        <p className="text-sm text-slate-400">
+                          {L.historyDepositsNone}
+                        </p>
+                      ) : (
+                        <ul className="text-sm space-y-4 text-slate-300">
+                          {history.deposits
+                            .slice()
+                            .sort(
+                              (a, b) =>
+                                new Date(b.createdAt).getTime() -
+                                new Date(a.createdAt).getTime()
+                            )
+                            .map((d) => (
+                              <li
+                                key={d.id}
+                                className="flex items-center justify-between border-b border-slate-700/60 pb-3 last:border-b-0 last:pb-0"
+                              >
+                                <span className="text-base">
+                                  {new Date(d.createdAt).toLocaleString()}
+                                </span>
+                                <div className="flex items-center gap-3">
                                   <div className="flex flex-col items-end">
                                     <span className="text-lg text-emerald-300 font-semibold">+{d.amountCents / 100} MAD</span>
                                     {d.depositorFullName && (
                                       <span className="text-sm text-slate-400">{d.depositorFullName}</span>
                                     )}
                                   </div>
-                                <span>
-                                  <StatusBadge status={d.status} />
-                                </span>
-                              </div>
-                            </li>
-                          ))}
-                      </ul>
-                    )}
-                  </div>
-
-                  <div className="bg-slate-800/80 border border-slate-700 rounded-xl sm:rounded-2xl p-6 sm:p-8">
-                    <h3 className="text-base font-semibold mb-4">
-                      {L.historyWithdrawalsTitle}
-                    </h3>
-                    {history.withdrawals?.length === 0 ? (
-                      <p className="text-sm text-slate-400">
-                        {L.historyWithdrawalsNone}
-                      </p>
-                    ) : (
-                      <ul className="text-sm space-y-4 text-slate-300">
-                        {history.withdrawals
-                          .slice()
-                          .sort(
-                            (a, b) =>
-                              new Date(b.createdAt).getTime() -
-                              new Date(a.createdAt).getTime()
-                          )
-                          .map((w) => (
-                            <li
-                              key={w.id}
-                              className="flex items-center justify-between border-b border-slate-700/60 pb-3 last:border-b-0 last:pb-0"
-                            >
-                              <div className="flex flex-col">
-                                <span className="text-base">
-                                  {new Date(w.createdAt).toLocaleString()}
-                                </span>
-                                {w.reference && (
-                                  <span className="text-sm text-cyan-400 font-mono">
-                                    Réf: {w.reference}
+                                  <span>
+                                    <StatusBadge status={d.status} />
                                   </span>
-                                )}
-                                <span className="text-sm text-slate-400">
-                                  {L.historyStatusLabel}: {w.status}
+                                </div>
+                              </li>
+                            ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-base font-semibold mb-4">
+                        {L.historyWithdrawalsTitle}
+                      </h3>
+                      {history.withdrawals?.length === 0 ? (
+                        <p className="text-sm text-slate-400">
+                          {L.historyWithdrawalsNone}
+                        </p>
+                      ) : (
+                        <ul className="text-sm space-y-4 text-slate-300">
+                          {history.withdrawals
+                            .slice()
+                            .sort(
+                              (a, b) =>
+                                new Date(b.createdAt).getTime() -
+                                new Date(a.createdAt).getTime()
+                            )
+                            .map((w) => (
+                              <li
+                                key={w.id}
+                                className="flex items-center justify-between border-b border-slate-700/60 pb-3 last:border-b-0 last:pb-0"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="text-base">
+                                    {new Date(w.createdAt).toLocaleString()}
+                                  </span>
+                                  {w.reference && (
+                                    <span className="text-sm text-cyan-400 font-mono">
+                                      Réf: {w.reference}
+                                    </span>
+                                  )}
+                                  <span className="text-sm text-slate-400">
+                                    {L.historyStatusLabel}: {w.status}
+                                  </span>
+                                </div>
+                                <span className="text-lg text-amber-300 font-semibold">
+                                  -{w.amountCents / 100} MAD
                                 </span>
-                              </div>
-                              <span className="text-lg text-amber-300 font-semibold">
-                                -{w.amountCents / 100} MAD
-                              </span>
-                            </li>
-                          ))}
-                      </ul>
-                    )}
-                  </div>
+                              </li>
+                            ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </section>
