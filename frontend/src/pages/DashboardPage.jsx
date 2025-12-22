@@ -2557,7 +2557,7 @@ if (loginTimeStr) {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                       </svg>
                       <span className="text-sm font-bold bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
-                        الإشعارات
+                        Notifications
                       </span>
                       {notifications.length > 0 && (
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-500/30 border border-indigo-500/50 rounded-full text-indigo-300">
@@ -2566,10 +2566,10 @@ if (loginTimeStr) {
                       )}
                     </div>
                     <button
-                      className="text-xs px-2 py-1 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all font-medium"
+                      className="text-xs px-3 py-1.5 text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg transition-all font-medium shadow-md hover:shadow-lg"
                       onClick={() => setNotifications([])}
                     >
-                      مسح الكل
+                      Clean !
                     </button>
                   </div>
 
@@ -2580,7 +2580,7 @@ if (loginTimeStr) {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-slate-600 mb-3">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.143 17.082a24.248 24.248 0 003.844.148m-3.844-.148a23.856 23.856 0 01-5.455-1.31 8.964 8.964 0 002.3-5.542m3.155 6.852a3 3 0 005.667 1.97m1.965-2.277L21 21m-4.225-4.225a23.81 23.81 0 003.536-1.003A8.967 8.967 0 0118 9.75V9A6 6 0 006.53 6.53m10.245 10.245L6.53 6.53M3 3l3.53 3.53" />
                         </svg>
-                        <p className="text-xs text-slate-500 font-medium">ماكاين حتى إشعار</p>
+                        <p className="text-xs text-slate-500 font-medium">Pas de notifications</p>
                       </div>
                     ) : (
                       <div className="p-2 space-y-2">
