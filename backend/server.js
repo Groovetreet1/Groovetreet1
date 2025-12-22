@@ -2326,6 +2326,58 @@ app.post(
   }
 );
 
+// 🔐 CHANGE PASSWORD (user profile)
+app.post("/api/profile/change-password", authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+    const userId = req.user.id;
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      return res.status(400).json({ message: "Ancien mot de passe, nouveau mot de passe et confirmation sont requis." });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ message: "Le nouveau mot de passe et la confirmation ne correspondent pas." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Le nouveau mot de passe doit contenir au moins 6 caractères." });
+    }
+
+    // Récupérer l'utilisateur pour vérifier l'ancien mot de passe
+    const [userRows] = await pool.execute(
+      "SELECT password_hash FROM users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    const user = userRows[0];
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ message: "L'ancien mot de passe est incorrect." });
+    }
+
+    // Hacher le nouveau mot de passe
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Mettre à jour le mot de passe
+    await pool.execute(
+      "UPDATE users SET password_hash = ? WHERE id = ?",
+      [newPasswordHash, userId]
+    );
+
+    return res.json({ message: "Mot de passe mis à jour avec succès." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur lors de la modification du mot de passe." });
+  }
+});
+
 app.get(
   "/api/admin/withdrawals",
   authMiddleware,

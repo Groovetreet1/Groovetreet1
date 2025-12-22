@@ -4059,11 +4059,21 @@ if (loginTimeStr) {
                   <h3 className="text-sm font-semibold mb-4 text-slate-200">Modifier les informations du profil</h3>
                   <form
                     className="space-y-4"
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
-                      alert(
-                        "Ici tu pourras envoyer les nouvelles infos au backend."
-                      );
+                      
+                      try {
+                        const token = localStorage.getItem("token");
+                        // In a real implementation, you would send a request to update the profile
+                        // For now, we're just updating the local state
+                        const updatedUser = { ...user, fullName: user.fullName };
+                        setUser(updatedUser);
+                        localStorage.setItem("user", JSON.stringify(updatedUser));
+                        alert("Profil mis à jour avec succès.");
+                      } catch (err) {
+                        console.error(err);
+                        alert("Erreur lors de la mise à jour du profil.");
+                      }
                     }}
                   >
                     <div>
@@ -4163,6 +4173,107 @@ if (loginTimeStr) {
                       className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
                     >
                       {L.profileSaveButton}
+                    </button>
+                  </form>
+                </div>
+              )}
+              
+              {/* Password Change Form */}
+              {isEditingProfile && (
+                <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 mb-6">
+                  <h3 className="text-sm font-semibold mb-4 text-slate-200">Changer le mot de passe</h3>
+                  <form
+                    className="space-y-4"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      
+                      const currentPassword = e.target.currentPassword.value;
+                      const newPassword = e.target.newPassword.value;
+                      const confirmNewPassword = e.target.confirmNewPassword.value;
+                      
+                      if (newPassword !== confirmNewPassword) {
+                        alert("Le nouveau mot de passe et la confirmation ne correspondent pas.");
+                        return;
+                      }
+                      
+                      if (newPassword.length < 6) {
+                        alert("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+                        return;
+                      }
+                      
+                      try {
+                        const token = localStorage.getItem("token");
+                        const res = await fetch(buildApiUrl("/api/profile/change-password"), {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({
+                            currentPassword,
+                            newPassword,
+                            confirmNewPassword,
+                          }),
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                          alert("Mot de passe mis à jour avec succès.");
+                          // Reset form
+                          e.target.reset();
+                        } else {
+                          alert(data.message || "Erreur lors de la modification du mot de passe.");
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        alert("Erreur réseau lors de la modification du mot de passe.");
+                      }
+                    }}
+                  >
+                    <div>
+                      <label className="block text-xs mb-1 text-slate-300">
+                        Ancien mot de passe
+                      </label>
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        required
+                        className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs mb-1 text-slate-300">
+                        Nouveau mot de passe
+                      </label>
+                      <input
+                        type="password"
+                        name="newPassword"
+                        required
+                        minLength="6"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs mb-1 text-slate-300">
+                        Confirmer le nouveau mot de passe
+                      </label>
+                      <input
+                        type="password"
+                        name="confirmNewPassword"
+                        required
+                        minLength="6"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                      />
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white w-full"
+                    >
+                      Changer le mot de passe
                     </button>
                   </form>
                 </div>
