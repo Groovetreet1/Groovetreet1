@@ -7,6 +7,12 @@
 
 # Rediriger toutes les routes vers index.html pour le routing côté client
 [[redirects]]
+  from = "/*.apk"
+  to = "/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
