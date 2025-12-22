@@ -2536,9 +2536,21 @@ if (loginTimeStr) {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl shadow-black/40 z-20 backdrop-blur-xl overflow-hidden">
+                <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl shadow-black/40 z-50 backdrop-blur-xl overflow-hidden">
+                  {/* VIP Background Effect */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
+                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-emerald-500/5 via-cyan-500/5 to-blue-500/5 rounded-full blur-3xl animate-pulse animation-delay-4000"></div>
+                    {/* Animated particles */}
+                    <div className="absolute top-4 left-4 w-2 h-2 bg-amber-400/60 rounded-full animate-ping"></div>
+                    <div className="absolute top-1/3 right-6 w-1.5 h-1.5 bg-purple-400/60 rounded-full animate-ping animation-delay-1000"></div>
+                    <div className="absolute bottom-8 left-1/4 w-2 h-2 bg-pink-400/60 rounded-full animate-ping animation-delay-2000"></div>
+                    <div className="absolute bottom-1/3 right-1/3 w-1.5 h-1.5 bg-cyan-400/60 rounded-full animate-ping animation-delay-3000"></div>
+                  </div>
+                  
                   {/* Header du popup */}
-                  <div className="px-4 py-3 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 border-b border-slate-700/50 flex items-center justify-between">
+                  <div className="px-4 py-3 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 border-b border-slate-700/50 flex items-center justify-between relative z-10">
                     <div className="flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-indigo-400">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -2561,7 +2573,7 @@ if (loginTimeStr) {
                   </div>
 
                   {/* Corps des notifications */}
-                  <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                  <div className="max-h-96 overflow-y-auto custom-scrollbar relative z-10">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-slate-600 mb-3">
