@@ -139,6 +139,9 @@ export default function DashboardPage() {
   
   const [activeSection, setActiveSection] = useState("overview");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalMessage, setPasswordModalMessage] = useState("");
+  const [passwordModalType, setPasswordModalType] = useState("success"); // 'success', 'error', or 'info'
 
   const navigate = useNavigate();
 
@@ -4192,12 +4195,16 @@ if (loginTimeStr) {
                       const confirmNewPassword = e.target.confirmNewPassword.value;
                       
                       if (newPassword !== confirmNewPassword) {
-                        alert("Le nouveau mot de passe et la confirmation ne correspondent pas.");
+                        setPasswordModalMessage("Le nouveau mot de passe et la confirmation ne correspondent pas.");
+                        setPasswordModalType("error");
+                        setShowPasswordModal(true);
                         return;
                       }
                       
                       if (newPassword.length < 6) {
-                        alert("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+                        setPasswordModalMessage("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+                        setPasswordModalType("error");
+                        setShowPasswordModal(true);
                         return;
                       }
                       
@@ -4230,15 +4237,21 @@ if (loginTimeStr) {
                         }
                         
                         if (res.ok) {
-                          alert("Mot de passe mis à jour avec succès.");
+                          setPasswordModalMessage("Mot de passe mis à jour avec succès.");
+                          setPasswordModalType("success");
+                          setShowPasswordModal(true);
                           // Reset form
                           e.target.reset();
                         } else {
-                          alert(data.message || `Erreur: ${res.status}`);
+                          setPasswordModalMessage(data.message || `Erreur: ${res.status}`);
+                          setPasswordModalType("error");
+                          setShowPasswordModal(true);
                         }
                       } catch (err) {
                         console.error(err);
-                        alert("Erreur réseau lors de la modification du mot de passe.");
+                        setPasswordModalMessage("Erreur réseau lors de la modification du mot de passe.");
+                        setPasswordModalType("error");
+                        setShowPasswordModal(true);
                       }
                     }}
                   >
@@ -6362,6 +6375,44 @@ if (loginTimeStr) {
               }}
             >
               Compris
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* MODAL DE CHANGEMENT DE MOT DE PASSE */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-center mb-4">
+              {passwordModalType === "success" ? (
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-emerald-400">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            
+            <h3 className={`text-lg font-semibold text-center mb-3 ${passwordModalType === "success" ? "text-emerald-400" : "text-red-400"}`}>
+              {passwordModalType === "success" ? "Succès" : "Erreur"}
+            </h3>
+            
+            <p className="text-center text-slate-300 mb-6">
+              {passwordModalMessage}
+            </p>
+            
+            <button
+              onClick={() => setShowPasswordModal(false)}
+              className={`w-full py-2.5 rounded-lg text-sm font-semibold ${passwordModalType === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"} text-white transition-colors`}
+            >
+              OK
             </button>
           </div>
         </div>
