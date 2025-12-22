@@ -21,7 +21,7 @@
       "dest": "frontend/dist/assets/$1"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|woff|woff2|json))$",
+      "src": "/(.*\.(js|css|ico|png|jpg|jpeg|svg|woff|woff2|json|apk))$",
       "dest": "frontend/dist/$1"
     },
     {

@@ -211,8 +211,8 @@ export default function LandingPage() {
             {/* Download APK Button */}
             <div className="mt-6">
               <a
-                href="/promoapp.apk"
-                download="windelevery.apk"
+                href="/Windelevery.apk"
+                download="Windelevery.apk"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-base font-semibold shadow-lg shadow-emerald-500/30 transition-all"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">

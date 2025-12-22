@@ -4546,7 +4546,7 @@ if (loginTimeStr) {
                 </div>
                 <a
                   href="/Windelevery.apk"
-                  download
+                  download="Windelevery.apk"
                   className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
