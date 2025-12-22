@@ -4216,14 +4216,25 @@ if (loginTimeStr) {
                           }),
                         });
                         
-                        const data = await res.json();
+                        // Check if the response is JSON before parsing
+                        const contentType = res.headers.get("content-type");
+                        let data = {};
+                        
+                        if (contentType && contentType.includes("application/json")) {
+                          data = await res.json();
+                        } else {
+                          // If not JSON, try to extract error message from HTML or use default
+                          const textResponse = await res.text();
+                          console.error("Non-JSON response:", textResponse);
+                          data = { message: res.status === 404 ? "Endpoint non trouvé. Vérifiez que l'API est correctement déployée." : `Erreur HTTP ${res.status}` };
+                        }
                         
                         if (res.ok) {
                           alert("Mot de passe mis à jour avec succès.");
                           // Reset form
                           e.target.reset();
                         } else {
-                          alert(data.message || "Erreur lors de la modification du mot de passe.");
+                          alert(data.message || `Erreur: ${res.status}`);
                         }
                       } catch (err) {
                         console.error(err);
