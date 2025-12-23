@@ -8,6 +8,7 @@
     "dev:backend": "cd backend && npm run dev"
   },
   "dependencies": {
+    "git": "^0.1.5",
     "nodemailer": "^7.0.11"
   }
 }
