@@ -1122,16 +1122,33 @@ if (loginTimeStr) {
     // Check if user can spin the weekly wheel (only once per login session)
     const checkSpinWheel = async () => {
       const shouldShowOnLogin = sessionStorage.getItem("spinWheelOnLogin");
-      if (!shouldShowOnLogin) {
+      const loginTimeStr = localStorage.getItem("loginTime");
+      const loginTime = loginTimeStr ? parseInt(loginTimeStr, 10) : null;
+      const withinLoginWindow =
+        Number.isFinite(loginTime) && Date.now() - loginTime < 2 * 60 * 1000;
+      const checkedKey = `spinWheelChecked_${parsedUser?.id || 'unknown'}`;
+      const checkedThisSession = sessionStorage.getItem(checkedKey);
+      const allowCheck = shouldShowOnLogin || (withinLoginWindow && !checkedThisSession);
+
+      if (!allowCheck) {
         return;
       }
+
       sessionStorage.removeItem("spinWheelOnLogin");
+      sessionStorage.setItem(checkedKey, "true");
 
       // Check if already shown this session (per user)
       const sessionKey = `spinWheelShown_${parsedUser?.id || 'unknown'}`;
       const shownThisSession = sessionStorage.getItem(sessionKey);
       if (shownThisSession) {
         return; // Don't show again this session
+      }
+
+      // Show immediately on login, then refine with API response
+      if (shouldShowOnLogin) {
+        setShowSpinWheel(true);
+        setCanActuallySpin(false);
+        setSpinMessage("Chargement...");
       }
       
       try {
@@ -1140,8 +1157,10 @@ if (loginTimeStr) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (res.ok && data.showPopup) {
-          setShowSpinWheel(true);
+        if (res.ok) {
+          if (data.showPopup || shouldShowOnLogin) {
+            setShowSpinWheel(true);
+          }
           setCanActuallySpin(data.canSpin);
           setSpinMessage(data.message || "");
           // Mark as shown for this session (per user)
