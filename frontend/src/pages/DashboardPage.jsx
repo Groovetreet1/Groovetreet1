@@ -140,6 +140,10 @@ export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState("overview");
   const [activeHistoryTab, setActiveHistoryTab] = useState('deposits'); // For history tabs - deposits or withdrawals
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileEditMode, setProfileEditMode] = useState("profile");
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileModalMessage, setProfileModalMessage] = useState("");
+  const [profileModalType, setProfileModalType] = useState("success");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalMessage, setPasswordModalMessage] = useState("");
   const [passwordModalType, setPasswordModalType] = useState("success"); // 'success', 'error', or 'info'
@@ -1117,6 +1121,12 @@ if (loginTimeStr) {
 
     // Check if user can spin the weekly wheel (only once per login session)
     const checkSpinWheel = async () => {
+      const shouldShowOnLogin = sessionStorage.getItem("spinWheelOnLogin");
+      if (!shouldShowOnLogin) {
+        return;
+      }
+      sessionStorage.removeItem("spinWheelOnLogin");
+
       // Check if already shown this session (per user)
       const sessionKey = `spinWheelShown_${parsedUser?.id || 'unknown'}`;
       const shownThisSession = sessionStorage.getItem(sessionKey);
@@ -4078,7 +4088,11 @@ if (loginTimeStr) {
                 {/* Edit Profile Button */}
                 <div className="mt-4 pt-4 border-t border-slate-700/50">
                   <button
-                    onClick={() => setIsEditingProfile(!isEditingProfile)}
+                    onClick={() => {
+                      const next = !isEditingProfile;
+                      setIsEditingProfile(next);
+                      if (next) setProfileEditMode("profile");
+                    }}
                     className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-medium text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -4089,8 +4103,33 @@ if (loginTimeStr) {
                 </div>
               </div>
               
-              {/* Profile Edit Form */}
               {isEditingProfile && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <button
+                    onClick={() => setProfileEditMode("profile")}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      profileEditMode === "profile"
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                        : "bg-slate-800/70 border-slate-700 text-slate-200 hover:border-indigo-500 hover:text-white"
+                    }`}
+                  >
+                    Infos du profil
+                  </button>
+                  <button
+                    onClick={() => setProfileEditMode("password")}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                      profileEditMode === "password"
+                        ? "bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-500/30"
+                        : "bg-slate-800/70 border-slate-700 text-slate-200 hover:border-emerald-500 hover:text-white"
+                    }`}
+                  >
+                    Mot de passe
+                  </button>
+                </div>
+              )}
+
+              {/* Profile Edit Form */}
+              {isEditingProfile && profileEditMode === "profile" && (
                 <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 mb-6">
                   <h3 className="text-sm font-semibold mb-4 text-slate-200">Modifier les informations du profil</h3>
                   <form
@@ -4098,18 +4137,22 @@ if (loginTimeStr) {
                     onSubmit={async (e) => {
                       e.preventDefault();
                       
-                      try {
-                        const token = localStorage.getItem("token");
-                        // In a real implementation, you would send a request to update the profile
-                        // For now, we're just updating the local state
-                        const updatedUser = { ...user, fullName: user.fullName };
-                        setUser(updatedUser);
-                        localStorage.setItem("user", JSON.stringify(updatedUser));
-                        alert("Profil mis à jour avec succès.");
-                      } catch (err) {
-                        console.error(err);
-                        alert("Erreur lors de la mise à jour du profil.");
-                      }
+                    try {
+                      const token = localStorage.getItem("token");
+                      // In a real implementation, you would send a request to update the profile
+                      // For now, we're just updating the local state
+                      const updatedUser = { ...user, fullName: user.fullName };
+                      setUser(updatedUser);
+                      localStorage.setItem("user", JSON.stringify(updatedUser));
+                      setProfileModalMessage("Profil mis à jour avec succès.");
+                      setProfileModalType("success");
+                      setShowProfileModal(true);
+                    } catch (err) {
+                      console.error(err);
+                      setProfileModalMessage("Erreur lors de la mise à jour du profil.");
+                      setProfileModalType("error");
+                      setShowProfileModal(true);
+                    }
                     }}
                   >
                     <div>
@@ -4215,7 +4258,7 @@ if (loginTimeStr) {
               )}
               
               {/* Password Change Form */}
-              {isEditingProfile && (
+              {isEditingProfile && profileEditMode === "password" && (
                 <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-5 mb-6">
                   <h3 className="text-sm font-semibold mb-4 text-slate-200">Changer le mot de passe</h3>
                   <form
@@ -4813,6 +4856,65 @@ if (loginTimeStr) {
                 </button>
               </div>
               <p className="text-[11px] text-slate-400 mb-4">Devenir membre VIP pour accéder à des avantages exclusifs.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-left">
+                <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/5">
+                  <p className="text-xs font-semibold text-amber-200 mb-1">Avantages VIP</p>
+                  <ul className="space-y-1 text-[11px] text-slate-200">
+                    <li className="flex items-start gap-2">
+                      <span>✨</span>
+                      <span>Plus de missions payantes chaque jour</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>⚡</span>
+                      <span>Validation des retraits prioritaire</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>🎁</span>
+                      <span>Bonus quotidiens selon ton plan</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-3 rounded-lg border border-indigo-500/40 bg-indigo-500/5">
+                  <p className="text-xs font-semibold text-indigo-200 mb-1">Procédure</p>
+                  <ul className="space-y-1 text-[11px] text-slate-200">
+                    <li className="flex items-start gap-2">
+                      <span>1️⃣</span>
+                      <span>Choisis un plan (80 / 150 / 300 / 500 MAD)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>2️⃣</span>
+                      <span>Confirme pour réserver le montant sur ton solde</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>3️⃣</span>
+                      <span>L'équipe vérifie et active ton VIP</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5">
+                  <p className="text-xs font-semibold text-emerald-200 mb-1">Infos utiles</p>
+                  <ul className="space-y-1 text-[11px] text-slate-200">
+                    <li className="flex items-start gap-2">
+                      <span>⏱️</span>
+                      <span>Activation en quelques minutes ouvrées</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>🧾</span>
+                      <span>Garde la preuve de paiement en cas de contrôle</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>💬</span>
+                      <span>Besoin d'aide ? Ouvre le support depuis le bouton flottant</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/5 text-[11px] text-slate-200 p-3 mb-4">
+                <p className="font-semibold text-emerald-300 mb-1">Important pour l'acceptation</p>
+                <p className="leading-relaxed">
+                  Après avoir confirmé l'upgrade, notre équipe valide manuellement ta demande. Si besoin, prépare une capture du reçu ou contacte le support pour accélérer la validation.
+                </p>
+              </div>
               <button
                 onClick={handleUpgradeVip}
                 className="w-full py-3 text-base rounded-lg bg-indigo-600 hover:bg-indigo-700 font-semibold"
@@ -6444,6 +6546,42 @@ if (loginTimeStr) {
             <button
               onClick={() => setShowPasswordModal(false)}
               className={`w-full py-2.5 rounded-lg text-sm font-semibold ${passwordModalType === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"} text-white transition-colors`}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-center mb-4">
+              {profileModalType === "success" ? (
+                <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-indigo-400">
+                    <path fillRule="evenodd" d="M12 3a9 9 0 100 18 9 9 0 000-18zm3.364 7.364l-3.707 3.707a1 1 0 01-1.414 0L8.636 11.5a1 1 0 011.414-1.414l1.089 1.089 3-3a1 1 0 111.414 1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-red-400">
+                    <path fillRule="evenodd" d="M12 3a9 9 0 100 18 9 9 0 000-18zm2.475 6.525a.75.75 0 00-1.06-1.06L12 9.879 10.585 8.465a.75.75 0 10-1.06 1.061L10.94 11l-1.415 1.414a.75.75 0 101.06 1.06L12 12.122l1.414 1.414a.75.75 0 001.06-1.06L13.06 11l1.414-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            <h3 className={`text-lg font-semibold text-center mb-3 ${profileModalType === "success" ? "text-indigo-400" : "text-red-400"}`}>
+              {profileModalType === "success" ? "Succès" : "Erreur"}
+            </h3>
+
+            <p className="text-center text-slate-300 mb-6">
+              {profileModalMessage}
+            </p>
+
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className={`w-full py-2.5 rounded-lg text-sm font-semibold ${profileModalType === "success" ? "bg-indigo-600 hover:bg-indigo-700" : "bg-red-600 hover:bg-red-700"} text-white transition-colors`}
             >
               OK
             </button>

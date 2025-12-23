@@ -48,6 +48,8 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("loginTime", Date.now().toString());
+        sessionStorage.setItem("spinWheelOnLogin", "true");
+        sessionStorage.removeItem(`spinWheelShown_${data.user?.id || "unknown"}`);
         
         // Rediriger les superadmins vers leur dashboard dédié
         if (data.user.role === 'superadmin') {
