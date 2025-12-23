@@ -38,6 +38,7 @@ export default function LandingPage() {
       card3Text: "Validation manuelle des demandes de retrait.",
       langFr: "🇫🇷 Français",
       langAr: "🇲🇦 الدارجة",
+      docs: "Documentation",
       // Nouvelle section pour la carte de présentation
       aboutTitle: "À propos de Windelevery",
       aboutDescription: "Votre plateforme de confiance pour gagner de l'argent en ligne",
@@ -70,6 +71,7 @@ export default function LandingPage() {
       card3Text: "الأدمين كيشوف الطلبات وكيأكد ولا يرفض السحب.",
       langFr: "🇫🇷 فرونصي",
       langAr: "🇲🇦 الدارجة المغربية",
+      docs: "الوثائق",
       // Nouvelle section pour la carte de présentation
       aboutTitle: "على Windelevery",
       aboutDescription: "المنصة ديالك باش تربح الدرهم المغربي فالانترنت",
@@ -148,6 +150,12 @@ export default function LandingPage() {
 
           {/* Zone droite : langue + boutons login / signup */}
           <div className="flex items-center gap-3">
+            <Link
+              to="/documentation"
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800"
+            >
+              {t.docs}
+            </Link>
             {/* Choix de langue */}
             <div className="flex items-center gap-1 text-[11px] border border-slate-700 rounded-full px-2 py-1 bg-slate-900">
               <button

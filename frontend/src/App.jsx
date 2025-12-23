@@ -19,6 +19,7 @@ import AdminFinancePage from "./pages/AdminFinancePage.jsx";
 import ReferralsPage from "./pages/ReferralsPage.jsx";
 import DepositPage from "./pages/DepositPage.jsx";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
+import DocumentationPage from "./pages/DocumentationPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
             <Routes>
         {/* Page d'accueil */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/documentation" element={<DocumentationPage />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
