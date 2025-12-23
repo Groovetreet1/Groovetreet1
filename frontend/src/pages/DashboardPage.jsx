@@ -467,6 +467,7 @@ export default function DashboardPage() {
           menuDownload: "Télécharger l'app",
 
       downloadSectionTitle: "Télécharger l'application",
+      downloadComment: "Navigation rapide, application legere et economie de batterie.",
       downloadHint: "Installez notre application Android pour un accès plus rapide.",
       downloadButton: "Télécharger l'APK Android",
       downloadNote: "L'application sera bientôt disponible sur Google Play.",
@@ -581,6 +582,7 @@ export default function DashboardPage() {
           menuDownload: "تحميل التطبيق",
 
       downloadSectionTitle: "تحميل التطبيق",
+      downloadComment: "تصفح سريع، تطبيق خفيف، واقتصاد في البطارية.",
       downloadHint: "ثبت تطبيقنا على الأندرويد باش توصل بسرعة.",
       downloadButton: "تحميل APK أندرويد",
       downloadNote: "التطبيق غادي يكون متوفر قريبا على Google Play.",
@@ -692,6 +694,7 @@ export default function DashboardPage() {
           menuDownload: "Download App",
 
       downloadSectionTitle: "Download Application",
+      downloadComment: "Fast navigation, lightweight app, and battery saving.",
       downloadHint: "Install our Android app for faster access.",
       downloadButton: "Download Android APK",
       downloadNote: "The app will soon be available on Google Play.",
@@ -4653,6 +4656,9 @@ if (loginTimeStr) {
               
               <p className="text-[10px] text-slate-500 text-center">
                 {L.downloadNote}
+              </p>
+              <p className="mt-2 text-xs text-slate-300 text-center">
+                {L.downloadComment}
               </p>
             </section>
           )}

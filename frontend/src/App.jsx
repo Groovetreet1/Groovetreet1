@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { buildApiUrl } from "./apiConfig";
 import { LanguageProvider } from "./contexts/LanguageContext.jsx";
 import MobileRedirectGuard from "./components/MobileRedirectGuard.jsx";
 import MobileFrame from "./components/MobileFrame.jsx";
@@ -20,6 +22,16 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
+  useEffect(() => {
+    const ping = () => {
+      fetch(buildApiUrl("/api/ping")).catch(() => {});
+    };
+
+    ping();
+    const intervalId = setInterval(ping, 2 * 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   return (
     <LanguageProvider>
       <BrowserRouter>

@@ -221,6 +221,7 @@ export default function LandingPage() {
                 {t.downloadApp}
               </a>
               <p className="text-xs text-slate-400 mt-2">Fichier APK pour Android</p>
+              <p className="text-xs text-emerald-400 mt-2 italic">Application optimisée et rapide pour une expérience utilisateur fluide</p>
             </div>
           </div>
         </div>

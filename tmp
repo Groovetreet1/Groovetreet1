@@ -1,0 +1,1 @@
+lines=Path('frontend/src/pages/DashboardPage.jsx').read_text(encoding='utf-8', errors='ignore').splitlines() 
