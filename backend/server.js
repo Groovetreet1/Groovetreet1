@@ -5,12 +5,61 @@ const bcrypt = require("bcryptjs");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 const pool = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
+const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:8081";
+
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE =
+  process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : SMTP_PORT === 465;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+
+const smtpTransporter =
+  SMTP_HOST && SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE,
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      })
+    : null;
+
+function buildResetEmail(resetUrl) {
+  return {
+    subject: "Réinitialisation de votre mot de passe - WindeDelivery",
+    text:
+      "Bonjour,\n\n" +
+      "Vous avez demandé la réinitialisation de votre mot de passe WindeDelivery.\n" +
+      "Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :\n" +
+      resetUrl +
+      "\n\n" +
+      "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\n" +
+      "Merci,\n" +
+      "L'équipe WindeDelivery",
+    html:
+      "<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #111;\">" +
+      "<p>Bonjour,</p>" +
+      "<p>Vous avez demandé la réinitialisation de votre mot de passe WindeDelivery.</p>" +
+      "<p><a href=\"" +
+      resetUrl +
+      "\" style=\"background:#0f766e;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;\">Réinitialiser mon mot de passe</a></p>" +
+      "<p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>" +
+      "<p style=\"word-break:break-all;\">" +
+      resetUrl +
+      "</p>" +
+      "<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>" +
+      "<p>Merci,<br/>L'équipe WindeDelivery</p>" +
+      "</div>",
+  };
+}
 
 // Limit deposit/withdraw hours (server local time)
 const WINDOW_START_MINUTES = 10 * 60;       // 10h00
@@ -833,11 +882,26 @@ app.post("/api/auth/forgot-password", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    // Dans un vrai projet, vous enverriez un email ici avec nodemailer
-    // Pour l'instant, on retourne juste un message de succès
-    // Le lien serait: http://localhost:8081/reset-password?token=${resetToken}
-    
-    console.log(`[RESET PASSWORD] Lien pour ${email}: http://localhost:8081/reset-password?token=${resetToken}`);
+    const resetUrl = `${APP_BASE_URL}/reset-password?token=${resetToken}`;
+
+    if (smtpTransporter) {
+      const mail = buildResetEmail(resetUrl);
+      try {
+        await smtpTransporter.sendMail({
+          from: SMTP_FROM,
+          to: email,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
+        });
+      } catch (mailErr) {
+        console.error("SMTP error while sending reset email:", mailErr);
+      }
+    } else {
+      console.warn("SMTP not configured. Skipping reset email send.");
+    }
+
+    console.log(`[RESET PASSWORD] Lien pour ${email}: ${resetUrl}`);
 
     return res.json({ 
       message: "Un lien de réinitialisation a été envoyé à votre adresse email.",
