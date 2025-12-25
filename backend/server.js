@@ -882,7 +882,8 @@ app.post("/api/auth/forgot-password", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    const resetUrl = `${APP_BASE_URL}/reset-password?token=${resetToken}`;
+    const baseUrl = APP_BASE_URL.replace(/\/+$/, "");
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
     if (smtpTransporter) {
       const mail = buildResetEmail(resetUrl);
