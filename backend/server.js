@@ -12,7 +12,7 @@ const pool = require("./db");
 const app = express();
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
-const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:8081";
+const APP_BASE_URL = process.env.APP_BASE_URL || "http://promoapp-001-site1.stempurl.com";
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
