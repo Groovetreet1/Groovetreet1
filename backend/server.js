@@ -29,8 +29,21 @@ const smtpTransporter =
         port: SMTP_PORT,
         secure: SMTP_SECURE,
         auth: { user: SMTP_USER, pass: SMTP_PASS },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
       })
     : null;
+
+if (smtpTransporter) {
+  smtpTransporter.verify((err) => {
+    if (err) {
+      console.error("SMTP verify failed:", err);
+    } else {
+      console.log("SMTP verify ok.");
+    }
+  });
+}
 
 function buildResetEmail(resetUrl) {
   return {
@@ -2395,6 +2408,54 @@ app.post(
     });
   }
 );
+
+// UPDATE PROFILE (full name)
+app.post("/api/profile", authMiddleware, async (req, res) => {
+  try {
+    const { fullName } = req.body;
+    if (typeof fullName !== "string") {
+      return res.status(400).json({ message: "Nom complet invalide." });
+    }
+
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      return res.status(400).json({ message: "Le nom complet est obligatoire." });
+    }
+
+    await pool.execute(
+      "UPDATE users SET full_name = ? WHERE id = ?",
+      [trimmedName, req.user.id]
+    );
+
+    req.user.fullName = trimmedName;
+
+    return res.json({
+      user: { fullName: trimmedName },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
+// GET PROFILE (fresh user data)
+app.get("/api/profile", authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, full_name AS fullName, email, vip_level AS vipLevel, vip_expires_at AS vipExpiresAt, role, promo_role_enabled AS promoRoleEnabled, balance_cents AS balanceCents, daily_rate_cents AS dailyRateCents, invite_code AS inviteCode, invited_by_user_id AS invitedByUserId, admin_bank_name AS adminBankName, created_at AS createdAt FROM users WHERE id = ? LIMIT 1",
+      [req.user.id]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: "Utilisateur introuvable." });
+    }
+
+    return res.json({ user: rows[0] });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
 
 // 🔐 CHANGE PASSWORD (user profile)
 app.post("/api/profile/change-password", authMiddleware, async (req, res) => {

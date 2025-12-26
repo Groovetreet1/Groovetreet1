@@ -144,6 +144,7 @@ export default function DashboardPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileModalMessage, setProfileModalMessage] = useState("");
   const [profileModalType, setProfileModalType] = useState("success");
+  const [profileFullName, setProfileFullName] = useState("");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordModalMessage, setPasswordModalMessage] = useState("");
   const [passwordModalType, setPasswordModalType] = useState("success"); // 'success', 'error', or 'info'
@@ -899,6 +900,7 @@ if (loginTimeStr) {
       localStorage.setItem("user", JSON.stringify(parsedUser));
     }
     setUser(parsedUser);
+    setProfileFullName(parsedUser?.fullName || "");
 
     const fetchTasks = async (platform = 'youtube') => {
       try {
@@ -4159,22 +4161,53 @@ if (loginTimeStr) {
                     onSubmit={async (e) => {
                       e.preventDefault();
                       
-                    try {
-                      const token = localStorage.getItem("token");
-                      // In a real implementation, you would send a request to update the profile
-                      // For now, we're just updating the local state
-                      const updatedUser = { ...user, fullName: user.fullName };
-                      setUser(updatedUser);
-                      localStorage.setItem("user", JSON.stringify(updatedUser));
-                      setProfileModalMessage("Profil mis à jour avec succès.");
-                      setProfileModalType("success");
-                      setShowProfileModal(true);
-                    } catch (err) {
-                      console.error(err);
-                      setProfileModalMessage("Erreur lors de la mise à jour du profil.");
-                      setProfileModalType("error");
-                      setShowProfileModal(true);
-                    }
+                      const trimmedName = profileFullName.trim();
+                      if (!trimmedName) {
+                        setProfileModalMessage("Le nom complet est obligatoire.");
+                        setProfileModalType("error");
+                        setShowProfileModal(true);
+                        return;
+                      }
+
+                      try {
+                        const token = localStorage.getItem("token");
+                        const res = await fetch(buildApiUrl("/api/profile"), {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ fullName: trimmedName }),
+                        });
+
+                        const contentType = res.headers.get("content-type");
+                        let data = {};
+
+                        if (contentType && contentType.includes("application/json")) {
+                          data = await res.json();
+                        } else {
+                          const textResponse = await res.text();
+                          console.error("Non-JSON response:", textResponse);
+                          data = { message: res.status === 404 ? "Endpoint non trouvé. Vérifiez que l'API est correctement déployée." : `Erreur HTTP ${res.status}` };
+                        }
+
+                        if (!res.ok) {
+                          throw new Error(data.message || "Erreur lors de la mise à jour du profil.");
+                        }
+
+                        const nextUser = { ...(user || {}), fullName: data.user?.fullName || trimmedName };
+                        setUser(nextUser);
+                        localStorage.setItem("user", JSON.stringify(nextUser));
+                        setProfileFullName(nextUser.fullName || "");
+                        setProfileModalMessage("Profil mis à jour avec succès.");
+                        setProfileModalType("success");
+                        setShowProfileModal(true);
+                      } catch (err) {
+                        console.error(err);
+                        setProfileModalMessage(err.message || "Erreur lors de la mise à jour du profil.");
+                        setProfileModalType("error");
+                        setShowProfileModal(true);
+                      }
                     }}
                   >
                     <div>
@@ -4183,16 +4216,8 @@ if (loginTimeStr) {
                       </label>
                       <input
                         type="text"
-                        value={user.fullName || ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setUser((prev) => {
-                            if (!prev) return prev;
-                            const updated = { ...prev, fullName: value };
-                            localStorage.setItem("user", JSON.stringify(updated));
-                            return updated;
-                          });
-                        }}
+                        value={profileFullName}
+                        onChange={(e) => setProfileFullName(e.target.value)}
                         className="w-full px-3 py-2 rounded-lg border border-slate-600 bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
                       />
                     </div>
