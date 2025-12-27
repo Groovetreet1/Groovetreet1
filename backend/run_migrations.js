@@ -392,6 +392,26 @@ async function run() {
       "Ensured promo_code_uses.amount_cents"
     );
 
+    // GAMES HISTORY
+    await run(
+      `
+      CREATE TABLE IF NOT EXISTS games_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        game_type VARCHAR(32) NOT NULL,
+        bet_cents INT NOT NULL,
+        bonus_cents INT NOT NULL DEFAULT 0,
+        won TINYINT(1) NOT NULL DEFAULT 0,
+        balance_before_cents INT NOT NULL DEFAULT 0,
+        balance_after_cents INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_games_user_created (user_id, created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `,
+      "Ensured table games_history"
+    );
+
     // Seed one default method if none exists
     try {
       const [countRows] = await connection.query("SELECT COUNT(*) AS cnt FROM deposit_methods");

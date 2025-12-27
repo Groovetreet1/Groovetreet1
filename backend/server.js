@@ -1655,6 +1655,92 @@ app.get("/api/tasks/instagram", authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint: POST /api/games/memory/resolve - Résoudre un jeu de memoire
+app.post("/api/games/memory/resolve", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const betCents = Number(req.body && req.body.betCents);
+    const won = Boolean(req.body && req.body.won);
+
+    if (!Number.isFinite(betCents) || betCents < 100 || betCents > 10000) {
+      return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+    }
+
+    const bonusCents = Math.floor(betCents * 0.5);
+    const deltaCents = won ? bonusCents : -betCents;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
+        "SELECT balance_cents FROM users WHERE id = ? FOR UPDATE",
+        [userId]
+      );
+      if (!rows || !rows[0]) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+
+      const balanceBefore = rows[0].balance_cents;
+      if (balanceBefore < betCents) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Solde insuffisant pour cette mise." });
+      }
+
+      const newBalance = balanceBefore + deltaCents;
+      await conn.execute("UPDATE users SET balance_cents = ? WHERE id = ?", [
+        newBalance,
+        userId
+      ]);
+      await conn.execute(
+        "INSERT INTO games_history (user_id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          "memory",
+          betCents,
+          won ? bonusCents : 0,
+          won ? 1 : 0,
+          balanceBefore,
+          newBalance
+        ]
+      );
+      await conn.commit();
+
+      return res.json({
+        new_balance_cents: newBalance,
+        bonus_cents: won ? bonusCents : 0
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
+// Endpoint: GET /api/games/history - Historique des jeux
+app.get("/api/games/history", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const [rows] = await pool.execute(
+      `SELECT id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents, created_at
+       FROM games_history
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 // Endpoint: GET /api/tasks/youtube - Récupérer les tâches YouTube
 app.get("/api/tasks/youtube", authMiddleware, async (req, res) => {
   try {
@@ -4279,6 +4365,27 @@ app.post("/api/youtube/record-like", authMiddleware, async (req, res) => {
 });
 
 // ==================== WEEKLY SPIN WHEEL ====================
+
+// Ensure games_history table exists
+async function ensureGamesHistoryTable() {
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS games_history (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      game_type VARCHAR(32) NOT NULL,
+      bet_cents INT NOT NULL,
+      bonus_cents INT NOT NULL DEFAULT 0,
+      won TINYINT(1) NOT NULL DEFAULT 0,
+      balance_before_cents INT NOT NULL DEFAULT 0,
+      balance_after_cents INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_games_user_created (user_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  console.log('✓ Table games_history vérifiée/créée');
+}
+ensureGamesHistoryTable().catch(console.error);
 
 // Ensure spin_wheel_history table exists
 async function ensureSpinWheelTable() {

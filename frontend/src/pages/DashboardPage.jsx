@@ -125,6 +125,14 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [selectedPlatform, setSelectedPlatform] = useState(null); // null = page de sélection, 'youtube'/'facebook'/etc = plateforme sélectionnée
+  const [gameBetMad, setGameBetMad] = useState("");
+  const [gameCurrentBetCents, setGameCurrentBetCents] = useState(0);
+  const [gameCards, setGameCards] = useState([]);
+  const [gameRevealed, setGameRevealed] = useState([]);
+  const [gameMatched, setGameMatched] = useState([]);
+  const [gameActive, setGameActive] = useState(false);
+  const [gameBusy, setGameBusy] = useState(false);
+  const [gameStatus, setGameStatus] = useState({ type: "", message: "" });
 
   const [history, setHistory] = useState({ deposits: [], withdrawals: [] });
   
@@ -1748,6 +1756,91 @@ if (loginTimeStr) {
     navigate("/");  
   };
 
+  const shuffleCards = (cards) => {
+    const shuffled = [...cards];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  const startMemoryGame = () => {
+    const betValue = Number(gameBetMad);
+    const betCents = Math.floor(betValue * 100);
+    if (!Number.isFinite(betValue) || betCents < 100 || betCents > 10000) {
+      setGameStatus({ type: "error", message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+      return;
+    }
+    setGameStatus({ type: "", message: "" });
+    setGameCurrentBetCents(betCents);
+    setGameRevealed([]);
+    setGameMatched([]);
+    setGameCards(
+      shuffleCards([
+        { id: 1, value: "A" },
+        { id: 2, value: "A" },
+        { id: 3, value: "B" },
+        { id: 4, value: "B" }
+      ])
+    );
+    setGameBusy(false);
+    setGameActive(true);
+  };
+
+  const resolveMemoryGame = async (won) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/games/memory/resolve"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ betCents: gameCurrentBetCents, won })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setGameStatus({ type: "error", message: data.message || "Erreur serveur." });
+        return;
+      }
+      setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
+      if (won) {
+        const bonus = Math.floor(gameCurrentBetCents * 0.5);
+        setGameStatus({ type: "success", message: `Gagne ! Bonus +${(bonus / 100).toFixed(2)} MAD.` });
+      } else {
+        setGameStatus({ type: "error", message: "Perdu. Reessayez une autre fois." });
+      }
+    } catch (err) {
+      console.error(err);
+      setGameStatus({ type: "error", message: "Erreur reseau." });
+    } finally {
+      setGameActive(false);
+      setGameBusy(false);
+    }
+  };
+
+  const handleMemoryCardClick = (index) => {
+    if (!gameActive || gameBusy) return;
+    if (gameRevealed.includes(index) || gameMatched.includes(index)) return;
+    const nextRevealed = [...gameRevealed, index];
+    setGameRevealed(nextRevealed);
+    if (nextRevealed.length === 2) {
+      setGameBusy(true);
+      const [first, second] = nextRevealed;
+      const isMatch = gameCards[first]?.value === gameCards[second]?.value;
+      setTimeout(() => {
+        if (isMatch) {
+          setGameMatched([first, second]);
+        } else {
+          setGameMatched([]);
+        }
+        setGameRevealed([]);
+        resolveMemoryGame(isMatch);
+      }, isMatch ? 400 : 700);
+    }
+  };
+
   const handleOpenTask = async (task) => {
     if (!task.videoUrl) {
       handleCompleteTask(task.id);
@@ -3287,6 +3380,32 @@ if (loginTimeStr) {
                         </div>
                       </div>
                     </div>
+
+                    {/* Jeux Card */}
+                    <button
+                      onClick={() => {
+                        setSelectedPlatform('games');
+                        setGameStatus({ type: '', message: '' });
+                        setGameRevealed([]);
+                        setGameMatched([]);
+                        setGameCards([]);
+                        setGameActive(false);
+                      }}
+                      className="group relative bg-gradient-to-br from-indigo-500/90 via-sky-500/90 to-emerald-600/90 hover:from-indigo-500 hover:via-sky-500 hover:to-emerald-600 rounded-2xl p-6 border border-indigo-400/30 hover:border-indigo-300/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/40"
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 7H8a3 3 0 00-3 3v4a3 3 0 003 3h3m2-10h3a3 3 0 013 3v4a3 3 0 01-3 3h-3M9.5 10.5h.01M9.5 13.5h.01M14.5 11.5h.01M17.5 11.5h.01" />
+                        </svg>
+                        <div className="text-center">
+                          <h3 className="text-xl font-bold text-white mb-1">Jeux</h3>
+                          <p className="text-xs text-white/80">Jeux de cartes et plus</p>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-white/20 rounded-full px-3 py-1">
+                          <span className="text-[10px] font-semibold text-white">{L.active || 'Actif'}</span>
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </section>
               )}
@@ -3678,7 +3797,104 @@ if (loginTimeStr) {
                 </section>
               )}
 
-              {user.role !== "admin" && selectedPlatform !== null && selectedPlatform !== 'ratestores' && (
+              {user.role !== "admin" && selectedPlatform === 'games' && (
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPlatform(null);
+                          setGameStatus({ type: "", message: "" });
+                          setGameRevealed([]);
+                          setGameMatched([]);
+                          setGameCards([]);
+                          setGameActive(false);
+                        }}
+                        className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 flex items-center gap-1"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        {L.returnBtn || 'Retour'}
+                      </button>
+                      <h2 className="text-sm font-semibold tracking-tight">
+                        Jeux - Cartes Memoire
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Mise (MAD)</p>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          step={1}
+                          value={gameBetMad}
+                          onChange={(e) => setGameBetMad(e.target.value)}
+                          className="w-40 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                          placeholder="1 - 100"
+                          disabled={gameBusy}
+                        />
+                        <p className="text-[11px] text-slate-500 mt-1">Gain: +50% de la mise si gagne.</p>
+                      </div>
+                      <button
+                        onClick={startMemoryGame}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+                        disabled={gameBusy}
+                      >
+                        Demarrer le jeu
+                      </button>
+                    </div>
+
+                    {gameStatus.message && (
+                      <div className={`mb-4 text-sm ${gameStatus.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {gameStatus.message}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-sm">
+                      {gameCards.length === 0 && (
+                        <div className="col-span-2 text-xs text-slate-400">
+                          Lance le jeu pour afficher les cartes.
+                        </div>
+                      )}
+                      {gameCards.map((card, index) => {
+                        const isRevealed = gameRevealed.includes(index) || gameMatched.includes(index);
+                        return (
+                          <button
+                            key={`${card.id}-${index}`}
+                            onClick={() => handleMemoryCardClick(index)}
+                            className={`h-24 rounded-xl border text-2xl font-bold transition-all ${
+                              isRevealed
+                                ? "bg-indigo-600 text-white border-indigo-400"
+                                : "bg-slate-800 text-slate-500 border-slate-700 hover:border-indigo-500"
+                            } ${gameActive ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                            disabled={!gameActive || gameBusy}
+                          >
+                            {isRevealed ? card.value : "?"}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 opacity-70">
+                        <p className="text-sm font-semibold text-white">Jeu 2</p>
+                        <p className="text-xs text-slate-400 mt-1">Bientot disponible</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 opacity-70">
+                        <p className="text-sm font-semibold text-white">Jeu 3</p>
+                        <p className="text-xs text-slate-400 mt-1">Bientot disponible</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {user.role !== "admin" && selectedPlatform !== null && selectedPlatform !== 'ratestores' && selectedPlatform !== 'games' && (
                 <section className="mb-8">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
