@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 require("dotenv").config();
 const pool = require("./db");
 
@@ -14,53 +14,54 @@ const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 const APP_BASE_URL = process.env.APP_BASE_URL || "http://promoapp-001-site1.stempurl.com";
 
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE =
-  process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : SMTP_PORT === 465;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM;
 
-const smtpTransporter =
-  SMTP_HOST && SMTP_USER && SMTP_PASS
-    ? nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: SMTP_SECURE,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-      })
-    : null;
+async function sendWithResend({ to, subject, text, html }) {
+  if (!RESEND_API_KEY || !RESEND_FROM) return false;
+  try {
+    await axios.post(
+      "https://api.resend.com/emails",
+      { from: RESEND_FROM, to: [to], subject, text, html },
+      {
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 15000,
+      }
+    );
+    return true;
+  } catch (err) {
+    console.error("Resend send failed:", err.response?.data || err.message);
+    return false;
+  }
+}
 
-if (smtpTransporter) {
-  smtpTransporter.verify((err) => {
-    if (err) {
-      console.error("SMTP verify failed:", err);
-    } else {
-      console.log("SMTP verify ok.");
-    }
-  });
+async function sendResetEmail(to, mail) {
+  if (RESEND_API_KEY) {
+    const ok = await sendWithResend({ to, ...mail });
+    if (ok) return true;
+  }
+  return false;
 }
 
 function buildResetEmail(resetUrl) {
   return {
-    subject: "Réinitialisation de votre mot de passe - WindeDelivery",
+    subject: "Réinitialisation de votre mot de passe - Windelevery",
     text:
       "Bonjour,\n\n" +
-      "Vous avez demandé la réinitialisation de votre mot de passe WindeDelivery.\n" +
+      "Vous avez demandé la réinitialisation de votre mot de passe Windelevery.\n" +
       "Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :\n" +
       resetUrl +
       "\n\n" +
       "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.\n\n" +
       "Merci,\n" +
-      "L'équipe WindeDelivery",
+      "L'équipe Windelevery",
     html:
       "<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #111;\">" +
       "<p>Bonjour,</p>" +
-      "<p>Vous avez demandé la réinitialisation de votre mot de passe WindeDelivery.</p>" +
+      "<p>Vous avez demandé la réinitialisation de votre mot de passe Windelevery.</p>" +
       "<p><a href=\"" +
       resetUrl +
       "\" style=\"background:#0f766e;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block;\">Réinitialiser mon mot de passe</a></p>" +
@@ -69,7 +70,7 @@ function buildResetEmail(resetUrl) {
       resetUrl +
       "</p>" +
       "<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>" +
-      "<p>Merci,<br/>L'équipe WindeDelivery</p>" +
+      "<p>Merci,<br/>L'équipe Windelevery</p>" +
       "</div>",
   };
 }
@@ -898,21 +899,14 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     const baseUrl = APP_BASE_URL.replace(/\/+$/, "");
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
-    if (smtpTransporter) {
-      const mail = buildResetEmail(resetUrl);
-      try {
-        await smtpTransporter.sendMail({
-          from: SMTP_FROM,
-          to: email,
-          subject: mail.subject,
-          text: mail.text,
-          html: mail.html,
-        });
-      } catch (mailErr) {
-        console.error("SMTP error while sending reset email:", mailErr);
+    const mail = buildResetEmail(resetUrl);
+    try {
+      const sent = await sendResetEmail(email, mail);
+      if (!sent) {
+        console.warn("Email not configured. Skipping reset email send.");
       }
-    } else {
-      console.warn("SMTP not configured. Skipping reset email send.");
+    } catch (mailErr) {
+      console.error("Email send error while sending reset email:", mailErr);
     }
 
     console.log(`[RESET PASSWORD] Lien pour ${email}: ${resetUrl}`);
