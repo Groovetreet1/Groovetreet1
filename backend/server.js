@@ -1828,8 +1828,8 @@ app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
       { label: "x0.1", multiplier: 0.1, weight: 15 },
       { label: "x0.8", multiplier: 0.8, weight: 25 },
       { label: "x1.1", multiplier: 1.1, weight: 30 },
-      { label: "x2", multiplier: 2.0, weight: 0 },
-      { label: "x10", multiplier: 10.0, weight: 0 }
+      { label: "x2", multiplier: 2.0, weight: 20 },
+      { label: "x10", multiplier: 10.0, weight: 10 }
     ];
     const totalWeight = buckets.reduce((sum, b) => sum + b.weight, 0);
     let roll = Math.random() * totalWeight;

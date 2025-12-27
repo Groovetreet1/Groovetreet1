@@ -213,6 +213,8 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showTimeLimitModal, setShowTimeLimitModal] = useState(false);
   const [timeLimitMessage, setTimeLimitMessage] = useState("");
+  const [showGameWinModal, setShowGameWinModal] = useState(false);
+  const [gameWinData, setGameWinData] = useState({ game: "", reward: 0, newBalance: 0, label: "" });
   const [timeLimitOperation, setTimeLimitOperation] = useState("");
   const [promoCodes, setPromoCodes] = useState([]);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -1827,6 +1829,13 @@ if (loginTimeStr) {
       if (won) {
         const bonus = Math.floor(gameCurrentBetCents * 0.5);
         setGameStatus({ type: "success", message: `Gagne ! Bonus +${(bonus / 100).toFixed(2)} MAD.` });
+        setGameWinData({
+          game: "Memoire",
+          reward: bonus,
+          newBalance: data.new_balance_cents,
+          label: "Bonus 50%"
+        });
+        setShowGameWinModal(true);
       } else {
         setGameStatus({ type: "error", message: "Perdu. Reessayez une autre fois." });
       }
@@ -1900,6 +1909,13 @@ if (loginTimeStr) {
           type: "success",
           message: `Gagne ! Bonus +${(data.bonus_cents / 100).toFixed(2)} MAD.`
         });
+        setGameWinData({
+          game: "Roue",
+          reward: data.bonus_cents,
+          newBalance: data.new_balance_cents,
+          label: data.label
+        });
+        setShowGameWinModal(true);
       } else {
         setDiceStatus({ type: "error", message: "Oops, try again." });
       }
@@ -1958,25 +1974,46 @@ if (loginTimeStr) {
       const slotIndex = typeof data.bucket_index === "number" ? data.bucket_index : 0;
       const targetX = (slotIndex - 1) * 40;
       const rows = 13;
-      const stepX = 30;
       const stepY = 14;
-      let x = 0;
+      const boardHeight = 288;
+      const binHeight = 28;
+      const binPadding = 16;
+      const ballSize = 16;
+      const finalY = boardHeight - binPadding - Math.floor(binHeight / 2) - Math.floor(ballSize / 2);
+      const stepX = 28;
       const path = [];
+      let x = 0;
       for (let row = 0; row < rows; row += 1) {
-        const dir = Math.random() < 0.5 ? -1 : 1;
-        x += dir * stepX;
-        if (row >= rows - 2) {
-          x += Math.sign(targetX - x) * stepX;
+        const remaining = rows - row;
+        const maxReach = remaining * stepX;
+        const minReach = -maxReach;
+        const canGoLeft = targetX - (x - stepX) >= minReach && targetX - (x - stepX) <= maxReach;
+        const canGoRight = targetX - (x + stepX) >= minReach && targetX - (x + stepX) <= maxReach;
+        let dir = 0;
+        if (canGoLeft && canGoRight) {
+          dir = Math.random() < 0.5 ? -1 : 1;
+        } else if (canGoLeft) {
+          dir = -1;
+        } else {
+          dir = 1;
         }
+        x += dir * stepX;
         path.push({ x, y: 18 + row * stepY });
       }
-      path.push({ x: targetX, y: 18 + rows * stepY });
+      path.push({ x: targetX, y: finalY });
       setPlinkoDrop({ id: dropId, path, step: 0 });
       if (data.won) {
         setPlinkoResult({
           type: "success",
           message: `Gagne ! x${data.multiplier} (+${(data.bonus_cents / 100).toFixed(2)} MAD).`
         });
+        setGameWinData({
+          game: "Plinko",
+          reward: data.bonus_cents,
+          newBalance: data.new_balance_cents,
+          label: `x${data.multiplier}`
+        });
+        setShowGameWinModal(true);
       } else {
         setPlinkoResult({ type: "error", message: `Perdu. x${data.multiplier}` });
       }
@@ -4072,7 +4109,7 @@ if (loginTimeStr) {
                           <div>
                             <p className="text-xs text-slate-400">Jeu 3</p>
                             <p className="text-lg font-semibold text-white">Plinko 3D</p>
-                            <p className="text-[11px] text-slate-400">Multiplicateurs 0.1x - 1.1x</p>
+                            <p className="text-[11px] text-slate-400">Multiplicateurs 0.1x, 0.8x, 1.1x, 2x, 10x</p>
                           </div>
                           <div
                             className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 shadow-[0_0_22px_rgba(236,72,153,0.7)]"
@@ -4248,7 +4285,7 @@ if (loginTimeStr) {
                     {activeGameTab === "plinko" && (
                       <div className="rounded-xl border border-pink-500/30 bg-slate-800/40 p-4">
                         <p className="text-sm font-semibold text-white">Plinko 3D</p>
-                        <p className="text-xs text-slate-400 mt-1">Multiplicateurs: x0.1, x0.8, x1.1.</p>
+                        <p className="text-xs text-slate-400 mt-1">Multiplicateurs: x0.1, x0.8, x1.1, x2, x10.</p>
                         <div className="flex items-end gap-3 mt-3">
                           <div>
                             <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
@@ -4292,8 +4329,8 @@ if (loginTimeStr) {
                                 </div>
                               ))}
                             </div>
-                            <div className="absolute inset-x-0 bottom-0 grid grid-cols-4 gap-2 px-4 pb-4">
-                              {["x0.1", "x0.8", "x1.1", "x10"].map((label) => (
+                            <div className="absolute inset-x-0 bottom-0 grid grid-cols-5 gap-2 px-4 pb-4">
+                              {["x0.1", "x0.8", "x1.1", "x2", "x10"].map((label) => (
                                 <div
                                   key={label}
                                   className={`h-7 rounded-lg border flex items-center justify-center text-[10px] font-semibold ${
@@ -6640,6 +6677,35 @@ if (loginTimeStr) {
             >
               Continuer
             </button>
+          </div>
+        </div>
+      )}
+
+      {showGameWinModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 border-2 border-indigo-500/50 rounded-2xl p-8 w-full max-w-md shadow-2xl shadow-indigo-500/20 relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-3 left-10 w-2 h-2 bg-indigo-400 rounded-full animate-ping" />
+              <div className="absolute bottom-8 right-12 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
+              <div className="absolute top-16 right-20 w-2 h-2 bg-fuchsia-400 rounded-full animate-ping" />
+            </div>
+            <div className="relative z-10 text-center">
+              <div className="text-4xl mb-3">🎉</div>
+              <h3 className="text-xl font-semibold text-indigo-300 mb-1">Gain obtenu</h3>
+              <p className="text-xs text-slate-400 mb-4">{gameWinData.game} • {gameWinData.label}</p>
+              <div className="text-3xl font-bold text-white mb-2">
+                +{(gameWinData.reward / 100).toFixed(2)} MAD
+              </div>
+              <p className="text-sm text-slate-400 mb-4">
+                Nouveau solde: {(gameWinData.newBalance / 100).toFixed(2)} MAD
+              </p>
+              <button
+                onClick={() => setShowGameWinModal(false)}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
