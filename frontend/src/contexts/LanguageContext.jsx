@@ -91,8 +91,8 @@ export const translations = {
     forgotPasswordPhoneTitle: "Recevoir le lien par WhatsApp",
     forgotPasswordPhoneSubtitle: "Ajoutez un numero marocain (06/07) pour recevoir le lien.",
     phoneLabel: "Numero de telephone",
-    phonePlaceholder: "06XXXXXXXX",
-    phoneInvalid: "Numero invalide. Utilisez 10 chiffres (06 ou 07).",
+    phonePlaceholder: "6XXXXXXXX",
+    phoneInvalid: "Numero invalide. Entrez 9 chiffres qui commencent par 6 ou 7.",
     phoneSend: "Envoyer par WhatsApp",
     phoneSkip: "Continuer sans WhatsApp",
     
@@ -288,8 +288,8 @@ export const translations = {
     forgotPasswordPhoneTitle: "خد الرابط عبر واتساب",
     forgotPasswordPhoneSubtitle: "دخل رقم مغربي (06/07) باش يوصلك الرابط.",
     phoneLabel: "رقم الهاتف",
-    phonePlaceholder: "06XXXXXXXX",
-    phoneInvalid: "رقم غير صالح. خاصو 10 أرقام ويبدا ب06 أو 07.",
+    phonePlaceholder: "6XXXXXXXX",
+    phoneInvalid: "رقم غير صالح. دخل 9 أرقام و يبدا ب6 أو 7.",
     phoneSend: "صيفط عبر واتساب",
     phoneSkip: "كمل بلا واتساب",
     

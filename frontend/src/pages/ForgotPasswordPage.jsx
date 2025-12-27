@@ -64,13 +64,13 @@ export default function ForgotPasswordPage() {
 
   const handleSendWithPhone = async () => {
     const cleaned = phone.replace(/\s+/g, "");
-    if (!/^0[67]\d{8}$/.test(cleaned)) {
+    if (!/^[67]\d{8}$/.test(cleaned)) {
       setPhoneError(t.phoneInvalid);
       return;
     }
     setShowPhoneModal(false);
     setPhone("");
-    await sendResetRequest(cleaned);
+    await sendResetRequest(`+212${cleaned}`);
   };
 
   const handleSendWithoutPhone = async () => {
@@ -198,16 +198,21 @@ export default function ForgotPasswordPage() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               {t.phoneLabel}
             </label>
-            <input
-              type="tel"
-              placeholder={t.phonePlaceholder}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                setPhoneError("");
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold">
+                +212
+              </span>
+              <input
+                type="tel"
+                placeholder={t.phonePlaceholder}
+                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-base text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setPhoneError("");
+                }}
+              />
+            </div>
             {phoneError && (
               <div className="mt-2 text-xs text-red-600">{phoneError}</div>
             )}

@@ -50,9 +50,13 @@ async function sendResetEmail(to, mail) {
 function normalizeMoroccoPhone(input) {
   const raw = String(input || "").trim();
   if (!raw) return null;
-  const cleaned = raw.replace(/[^\d]/g, "");
+  let cleaned = raw.replace(/[^\d+]/g, "");
+  if (cleaned.startsWith("+")) cleaned = cleaned.slice(1);
   if (/^0[67]\d{8}$/.test(cleaned)) {
-    return `212${cleaned.slice(1)}`;
+    cleaned = cleaned.slice(1);
+  }
+  if (/^[67]\d{8}$/.test(cleaned)) {
+    return `212${cleaned}`;
   }
   if (/^212[67]\d{8}$/.test(cleaned)) {
     return cleaned;
