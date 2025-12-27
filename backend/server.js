@@ -1722,7 +1722,7 @@ app.post("/api/games/memory/resolve", authMiddleware, async (req, res) => {
   }
 });
 
-// Endpoint: POST /api/games/dice/roll - Jeu de dés (bonus 50% de la mise)
+// Endpoint: POST /api/games/dice/roll - Roue de gains (15 choix + 3 oops)
 app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
   try {
     const userId = req.user && req.user.id;
@@ -1731,10 +1731,32 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
     }
 
-    const roll = Math.floor(Math.random() * 1000) + 1; // 1-1000
-    const won = roll === 1;
-    const bonusCents = won ? Math.floor(betCents * 0.5) : 0;
-    const deltaCents = won ? bonusCents : -betCents;
+    const wheel = [
+      { label: "x0.2", multiplier: 0.2 },
+      { label: "x0.3", multiplier: 0.3 },
+      { label: "x0.4", multiplier: 0.4 },
+      { label: "x0.5", multiplier: 0.5 },
+      { label: "x0.6", multiplier: 0.6 },
+      { label: "x0.7", multiplier: 0.7 },
+      { label: "x0.8", multiplier: 0.8 },
+      { label: "x0.9", multiplier: 0.9 },
+      { label: "x1.0", multiplier: 1.0 },
+      { label: "x0.25", multiplier: 0.25 },
+      { label: "x0.35", multiplier: 0.35 },
+      { label: "x0.45", multiplier: 0.45 },
+      { label: "x0.55", multiplier: 0.55 },
+      { label: "x0.65", multiplier: 0.65 },
+      { label: "x0.75", multiplier: 0.75 },
+      { label: "Oops, try again", multiplier: 0 },
+      { label: "Oops, try again", multiplier: 0 },
+      { label: "Oops, try again", multiplier: 0 }
+    ];
+    const index = Math.floor(Math.random() * wheel.length);
+    const result = wheel[index];
+    const payoutCents = Math.floor(betCents * result.multiplier);
+    const deltaCents = payoutCents - betCents;
+    const bonusCents = Math.max(0, deltaCents);
+    const won = payoutCents >= betCents && result.multiplier > 0;
 
     const conn = await pool.getConnection();
     try {
@@ -1763,7 +1785,7 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
         "INSERT INTO games_history (user_id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
           userId,
-          "dice",
+          "wheel",
           betCents,
           bonusCents,
           won ? 1 : 0,
@@ -1774,7 +1796,9 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
       await conn.commit();
 
       return res.json({
-        roll,
+        index,
+        label: result.label,
+        multiplier: result.multiplier,
         won,
         bonus_cents: bonusCents,
         new_balance_cents: newBalance

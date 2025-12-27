@@ -137,6 +137,8 @@ export default function DashboardPage() {
   const [diceBusy, setDiceBusy] = useState(false);
   const [diceResult, setDiceResult] = useState(null);
   const [diceStatus, setDiceStatus] = useState({ type: "", message: "" });
+  const [gameWheelRotation, setGameWheelRotation] = useState(0);
+  const [gameWheelSpinning, setGameWheelSpinning] = useState(false);
   const [gameHistory, setGameHistory] = useState([]);
   const [gameHistoryLoading, setGameHistoryLoading] = useState(false);
   const [activeGameTab, setActiveGameTab] = useState("memory");
@@ -145,6 +147,11 @@ export default function DashboardPage() {
   const [plinkoResult, setPlinkoResult] = useState(null);
   const [plinkoDrop, setPlinkoDrop] = useState(null);
   const plinkoTimerRef = useRef(null);
+  const gameWheelLabels = [
+    "x0.2", "Oops", "x0.3", "x0.4", "x0.5", "Oops",
+    "x0.6", "x0.7", "x0.8", "x0.9", "x1.0", "Oops",
+    "x0.25", "x0.35", "x0.45", "x0.55", "x0.65", "x0.75"
+  ];
 
   const [history, setHistory] = useState({ deposits: [], withdrawals: [] });
   
@@ -1863,6 +1870,8 @@ if (loginTimeStr) {
     setDiceBusy(true);
     setDiceStatus({ type: "", message: "" });
     setDiceResult(null);
+    setGameWheelSpinning(true);
+    setGameWheelRotation((prev) => prev + 360 * 2);
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(buildApiUrl("/api/games/dice/roll"), {
@@ -1879,14 +1888,20 @@ if (loginTimeStr) {
         return;
       }
       setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
-      setDiceResult({ roll: data.roll, won: data.won, bonusCents: data.bonus_cents });
+      if (typeof data.index === "number") {
+        const segmentAngle = 360 / gameWheelLabels.length;
+        const target = (data.index * segmentAngle) + segmentAngle / 2;
+        setGameWheelRotation((prev) => prev + 360 * 4 + target);
+        setTimeout(() => setGameWheelSpinning(false), 1200);
+      }
+      setDiceResult({ label: data.label, won: data.won, bonusCents: data.bonus_cents });
       if (data.won) {
         setDiceStatus({
           type: "success",
           message: `Gagne ! Bonus +${(data.bonus_cents / 100).toFixed(2)} MAD.`
         });
       } else {
-        setDiceStatus({ type: "error", message: "Perdu. Reessayez une autre fois." });
+        setDiceStatus({ type: "error", message: "Oops, try again." });
       }
     } catch (err) {
       console.error(err);
@@ -4032,8 +4047,8 @@ if (loginTimeStr) {
                         <div className="relative z-10 flex items-center justify-between">
                           <div>
                             <p className="text-xs text-slate-400">Jeu 2</p>
-                            <p className="text-lg font-semibold text-white">Dice Neon</p>
-                            <p className="text-[11px] text-slate-400">Gain 0.10%, bonus 50%</p>
+                            <p className="text-lg font-semibold text-white">Roue Neon</p>
+                            <p className="text-[11px] text-slate-400">Gains max x1 + Oops</p>
                           </div>
                           <div
                             className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-[0_0_22px_rgba(16,185,129,0.7)]"
@@ -4158,9 +4173,43 @@ if (loginTimeStr) {
 
                     {activeGameTab === "dice" && (
                       <div className="rounded-xl border border-emerald-500/30 bg-slate-800/40 p-4">
-                        <p className="text-sm font-semibold text-white">Dice Neon</p>
-                        <p className="text-xs text-slate-400 mt-1">Gain 0.10% de chance, bonus 50% de la mise.</p>
-                        <div className="flex items-end gap-3 mt-3">
+                        <p className="text-sm font-semibold text-white">Roue Neon</p>
+                        <p className="text-xs text-slate-400 mt-1">Gains max x1 + Oops.</p>
+                        <div className="mt-4 flex items-center justify-center">
+                          <div className="relative">
+                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                              <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[18px] border-l-transparent border-r-transparent border-b-emerald-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                            </div>
+                            <div
+                              className="relative w-64 h-64 rounded-full border-4 border-emerald-300/60 shadow-[0_0_24px_rgba(16,185,129,0.45)]"
+                              style={{
+                                background: "conic-gradient(#0ea5e9 0deg 20deg, #22c55e 20deg 40deg, #f59e0b 40deg 60deg, #ec4899 60deg 80deg, #8b5cf6 80deg 100deg, #0ea5e9 100deg 120deg, #22c55e 120deg 140deg, #f59e0b 140deg 160deg, #ec4899 160deg 180deg, #8b5cf6 180deg 200deg, #0ea5e9 200deg 220deg, #22c55e 220deg 240deg, #f59e0b 240deg 260deg, #ec4899 260deg 280deg, #8b5cf6 280deg 300deg, #0ea5e9 300deg 320deg, #22c55e 320deg 340deg, #f59e0b 340deg 360deg)",
+                                transform: `rotate(${gameWheelRotation + 180}deg)`,
+                                transition: gameWheelSpinning ? "transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)" : "none"
+                              }}
+                            >
+                              <div className="absolute inset-0 rounded-full">
+                                {gameWheelLabels.map((label, i) => {
+                                  const angle = (360 / gameWheelLabels.length) * i;
+                                  return (
+                                    <div
+                                      key={`${label}-${i}`}
+                                      className="absolute left-1/2 top-1/2 text-[9px] font-semibold text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.8)] flex items-center justify-center"
+                                      style={{
+                                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-116px)`,
+                                        width: "60px"
+                                      }}
+                                    >
+                                      {label}
+                                    </div>
+                                  );
+                                })}
+                                <div className="absolute left-1/2 top-1/2 w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-900 border border-emerald-300/60 shadow-[0_0_12px_rgba(16,185,129,0.6)]" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-end gap-3 mt-4">
                           <div>
                             <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
                             <input
@@ -4190,7 +4239,7 @@ if (loginTimeStr) {
                         )}
                         {diceResult && (
                           <div className="mt-2 text-xs text-slate-300">
-                            Resultat: <span className="font-semibold text-white">{diceResult.roll}</span>
+                            Resultat: <span className="font-semibold text-white">{diceResult.label}</span>
                           </div>
                         )}
                       </div>
