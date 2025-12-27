@@ -16,10 +16,7 @@ const APP_BASE_URL = process.env.APP_BASE_URL || "http://promoapp-001-site1.stem
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM;
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || "";
-const WHATSAPP_TEMPLATE_LANG = process.env.WHATSAPP_TEMPLATE_LANG || "fr";
+const WASENDER_API_KEY = process.env.WASENDER_API_KEY;
 
 async function sendWithResend({ to, subject, text, html }) {
   if (!RESEND_API_KEY || !RESEND_FROM) return false;
@@ -53,49 +50,28 @@ async function sendResetEmail(to, mail) {
 function normalizeMoroccoPhone(input) {
   const raw = String(input || "").trim();
   if (!raw) return null;
-  const cleaned = raw.replace(/[^\d+]/g, "");
-  if (/^\+?212[67]\d{8}$/.test(cleaned)) {
-    return cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
-  }
+  const cleaned = raw.replace(/[^\d]/g, "");
   if (/^0[67]\d{8}$/.test(cleaned)) {
-    return `+212${cleaned.slice(1)}`;
+    return cleaned;
+  }
+  if (/^212[67]\d{8}$/.test(cleaned)) {
+    return `0${cleaned.slice(3)}`;
   }
   return null;
 }
 
 async function sendWhatsAppReset(toPhone, resetUrl) {
-  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) return false;
+  if (!WASENDER_API_KEY) return false;
   const phone = normalizeMoroccoPhone(toPhone);
   if (!phone) return false;
-  const url = `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const isTemplate = WHATSAPP_TEMPLATE_NAME.trim().length > 0;
-  const payload = isTemplate
-    ? {
-        messaging_product: "whatsapp",
-        to: phone,
-        type: "template",
-        template: {
-          name: WHATSAPP_TEMPLATE_NAME,
-          language: { code: WHATSAPP_TEMPLATE_LANG },
-          components: [
-            {
-              type: "body",
-              parameters: [{ type: "text", text: resetUrl }],
-            },
-          ],
-        },
-      }
-    : {
-        messaging_product: "whatsapp",
-        to: phone,
-        type: "text",
-        text: {
-          body: `Windelevery: voici votre lien de reinitialisation de mot de passe: ${resetUrl}`,
-        },
-      };
+  const url = "https://wasenderapi.com/api/send-message";
+  const payload = {
+    to: phone,
+    text: `Windelevery: voici votre lien de reinitialisation de mot de passe: ${resetUrl}`,
+  };
   try {
     await axios.post(url, payload, {
-      headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` },
+      headers: { Authorization: `Bearer ${WASENDER_API_KEY}` },
       timeout: 15000,
     });
     return true;
