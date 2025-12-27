@@ -208,7 +208,14 @@ export default function ForgotPasswordPage() {
                 className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-base text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 value={phone}
                 onChange={(e) => {
-                  setPhone(e.target.value);
+                  let next = e.target.value.replace(/[^\d]/g, "");
+                  if (next.startsWith("0")) {
+                    next = next.slice(1);
+                  }
+                  if (next.length > 9) {
+                    next = next.slice(0, 9);
+                  }
+                  setPhone(next);
                   setPhoneError("");
                 }}
               />

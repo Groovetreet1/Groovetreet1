@@ -6,6 +6,7 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 const axios = require("axios");
+const crypto = require("crypto");
 require("dotenv").config();
 const pool = require("./db");
 
@@ -927,12 +928,38 @@ app.post("/api/auth/forgot-password", async (req, res) => {
     }
 
     const user = rows[0];
-    
+
+    // Table pour stocker les tokens de reset
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash VARCHAR(128) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_token_hash (token_hash)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`
+    );
+
     // Générer un token de réinitialisation valide 1 heure
     const resetToken = jwt.sign(
       { userId: user.id, type: "reset" },
       JWT_SECRET,
       { expiresIn: "1h" }
+    );
+    const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Invalider les anciens tokens non utilisés
+    await pool.execute(
+      "UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL",
+      [user.id]
+    );
+    await pool.execute(
+      "INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)",
+      [user.id, tokenHash, expiresAt]
     );
 
     const baseUrl = APP_BASE_URL.replace(/\/+$/, "");
@@ -992,7 +1019,31 @@ app.post("/api/auth/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Token invalide." });
     }
 
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash VARCHAR(128) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_token_hash (token_hash)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`
+    );
+
     const userId = decoded.userId;
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+    const [tokenRows] = await pool.execute(
+      `SELECT id FROM password_reset_tokens
+       WHERE user_id = ? AND token_hash = ? AND used_at IS NULL AND expires_at > NOW()
+       ORDER BY id DESC LIMIT 1`,
+      [userId, tokenHash]
+    );
+    if (!tokenRows || tokenRows.length === 0) {
+      return res.status(400).json({ message: "Token invalide ou expiré." });
+    }
 
     // Vérifier que l'utilisateur existe toujours
     const [userRows] = await pool.execute(
@@ -1011,6 +1062,11 @@ app.post("/api/auth/reset-password", async (req, res) => {
     await pool.execute(
       "UPDATE users SET password_hash = ? WHERE id = ?",
       [hashedPassword, userId]
+    );
+
+    await pool.execute(
+      "UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ?",
+      [tokenRows[0].id]
     );
 
     console.log(`[RESET PASSWORD] Mot de passe réinitialisé pour l'utilisateur ID: ${userId}`);
