@@ -133,6 +133,12 @@ export default function DashboardPage() {
   const [gameActive, setGameActive] = useState(false);
   const [gameBusy, setGameBusy] = useState(false);
   const [gameStatus, setGameStatus] = useState({ type: "", message: "" });
+  const [diceBetMad, setDiceBetMad] = useState("");
+  const [diceBusy, setDiceBusy] = useState(false);
+  const [diceResult, setDiceResult] = useState(null);
+  const [diceStatus, setDiceStatus] = useState({ type: "", message: "" });
+  const [gameHistory, setGameHistory] = useState([]);
+  const [gameHistoryLoading, setGameHistoryLoading] = useState(false);
 
   const [history, setHistory] = useState({ deposits: [], withdrawals: [] });
   
@@ -1841,6 +1847,67 @@ if (loginTimeStr) {
     }
   };
 
+  const handleDiceRoll = async () => {
+    const betValue = Number(diceBetMad);
+    const betCents = Math.floor(betValue * 100);
+    if (!Number.isFinite(betValue) || betCents < 100 || betCents > 10000) {
+      setDiceStatus({ type: "error", message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+      return;
+    }
+    setDiceBusy(true);
+    setDiceStatus({ type: "", message: "" });
+    setDiceResult(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/games/dice/roll"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ betCents })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDiceStatus({ type: "error", message: data.message || "Erreur serveur." });
+        return;
+      }
+      setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
+      setDiceResult({ roll: data.roll, won: data.won, bonusCents: data.bonus_cents });
+      if (data.won) {
+        setDiceStatus({
+          type: "success",
+          message: `Gagne ! Bonus +${(data.bonus_cents / 100).toFixed(2)} MAD.`
+        });
+      } else {
+        setDiceStatus({ type: "error", message: "Perdu. Reessayez une autre fois." });
+      }
+    } catch (err) {
+      console.error(err);
+      setDiceStatus({ type: "error", message: "Erreur reseau." });
+    } finally {
+      setDiceBusy(false);
+    }
+  };
+
+  const fetchGameHistory = async () => {
+    setGameHistoryLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/games/history"), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setGameHistory(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGameHistoryLoading(false);
+    }
+  };
+
   const handleOpenTask = async (task) => {
     if (!task.videoUrl) {
       handleCompleteTask(task.id);
@@ -3390,6 +3457,9 @@ if (loginTimeStr) {
                         setGameMatched([]);
                         setGameCards([]);
                         setGameActive(false);
+                        setDiceStatus({ type: "", message: "" });
+                        setDiceResult(null);
+                        fetchGameHistory();
                       }}
                       className="group relative bg-gradient-to-br from-indigo-500/90 via-sky-500/90 to-emerald-600/90 hover:from-indigo-500 hover:via-sky-500 hover:to-emerald-600 rounded-2xl p-6 border border-indigo-400/30 hover:border-indigo-300/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/40"
                     >
@@ -3809,6 +3879,8 @@ if (loginTimeStr) {
                           setGameMatched([]);
                           setGameCards([]);
                           setGameActive(false);
+                          setDiceStatus({ type: "", message: "" });
+                          setDiceResult(null);
                         }}
                         className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800 flex items-center gap-1"
                       >
@@ -3881,14 +3953,93 @@ if (loginTimeStr) {
                     </div>
 
                     <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 opacity-70">
-                        <p className="text-sm font-semibold text-white">Jeu 2</p>
-                        <p className="text-xs text-slate-400 mt-1">Bientot disponible</p>
+                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4">
+                        <p className="text-sm font-semibold text-white">Jeu 2 - Dice</p>
+                        <p className="text-xs text-slate-400 mt-1">Gagnez souvent, bonus 50% de la mise.</p>
+                        <div className="flex items-end gap-3 mt-3">
+                          <div>
+                            <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={diceBetMad}
+                              onChange={(e) => setDiceBetMad(e.target.value)}
+                              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                              placeholder="1 - 100"
+                              disabled={diceBusy}
+                            />
+                          </div>
+                          <button
+                            onClick={handleDiceRoll}
+                            className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+                            disabled={diceBusy}
+                          >
+                            Lancer
+                          </button>
+                        </div>
+                        {diceStatus.message && (
+                          <div className={`mt-3 text-xs ${diceStatus.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {diceStatus.message}
+                          </div>
+                        )}
+                        {diceResult && (
+                          <div className="mt-2 text-xs text-slate-300">
+                            Resultat: <span className="font-semibold text-white">{diceResult.roll}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 opacity-70">
                         <p className="text-sm font-semibold text-white">Jeu 3</p>
                         <p className="text-xs text-slate-400 mt-1">Bientot disponible</p>
                       </div>
+                    </div>
+
+                    <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/30 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-semibold text-white">Historique des jeux</p>
+                        <button
+                          onClick={fetchGameHistory}
+                          className="text-[11px] px-3 py-1 rounded-full border border-slate-700 hover:bg-slate-800"
+                          disabled={gameHistoryLoading}
+                        >
+                          {gameHistoryLoading ? "Chargement..." : "Rafraichir"}
+                        </button>
+                      </div>
+                      {gameHistoryLoading && (
+                        <p className="text-xs text-slate-400">Chargement en cours...</p>
+                      )}
+                      {!gameHistoryLoading && gameHistory.length === 0 && (
+                        <p className="text-xs text-slate-400">Aucun jeu joue pour le moment.</p>
+                      )}
+                      {!gameHistoryLoading && gameHistory.length > 0 && (
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {gameHistory.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between text-xs text-slate-300 border border-slate-700/60 rounded-lg px-3 py-2"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="uppercase text-[10px] tracking-wide text-slate-400">
+                                  {item.game_type}
+                                </span>
+                                <span className={item.won ? "text-emerald-400" : "text-rose-400"}>
+                                  {item.won ? "Gagne" : "Perdu"}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <div>
+                                  Mise: {(item.bet_cents / 100).toFixed(2)} MAD
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  Bonus: {(item.bonus_cents / 100).toFixed(2)} MAD
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </section>

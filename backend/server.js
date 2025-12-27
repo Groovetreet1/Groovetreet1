@@ -1722,6 +1722,75 @@ app.post("/api/games/memory/resolve", authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint: POST /api/games/dice/roll - Jeu de dés (bonus 50% de la mise)
+app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const betCents = Number(req.body && req.body.betCents);
+    if (!Number.isFinite(betCents) || betCents < 100 || betCents > 10000) {
+      return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+    }
+
+    const roll = Math.floor(Math.random() * 1000) + 1; // 1-1000
+    const won = roll === 1;
+    const bonusCents = won ? Math.floor(betCents * 0.5) : 0;
+    const deltaCents = won ? bonusCents : -betCents;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
+        "SELECT balance_cents FROM users WHERE id = ? FOR UPDATE",
+        [userId]
+      );
+      if (!rows || !rows[0]) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+
+      const balanceBefore = rows[0].balance_cents;
+      if (balanceBefore < betCents) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Solde insuffisant pour cette mise." });
+      }
+
+      const newBalance = balanceBefore + deltaCents;
+      await conn.execute("UPDATE users SET balance_cents = ? WHERE id = ?", [
+        newBalance,
+        userId
+      ]);
+      await conn.execute(
+        "INSERT INTO games_history (user_id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          "dice",
+          betCents,
+          bonusCents,
+          won ? 1 : 0,
+          balanceBefore,
+          newBalance
+        ]
+      );
+      await conn.commit();
+
+      return res.json({
+        roll,
+        won,
+        bonus_cents: bonusCents,
+        new_balance_cents: newBalance
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 // Endpoint: GET /api/games/history - Historique des jeux
 app.get("/api/games/history", authMiddleware, async (req, res) => {
   try {
