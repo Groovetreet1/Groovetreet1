@@ -151,7 +151,7 @@ export default function DashboardPage() {
   const gameWheelLabels = [
     "x0.2", "Oops", "x0.3", "x0.4", "x0.5", "Oops",
     "x0.6", "x0.7", "x0.8", "x0.9", "x1.0", "Oops",
-    "x0.25", "x0.35", "x0.45", "x0.55", "x0.65", "x0.75"
+    "x1.2", "x1.4", "x1.6", "x1.8", "x2.0", "x1.1"
   ];
 
   const [history, setHistory] = useState({ deposits: [], withdrawals: [] });
@@ -1904,21 +1904,31 @@ if (loginTimeStr) {
         setGameWheelRotation((prev) => prev + 360 * 4 + target);
         setTimeout(() => setGameWheelSpinning(false), 1200);
       }
-      setDiceResult({ label: data.label, won: data.won, bonusCents: data.bonus_cents });
+      const payoutCents = Math.floor(betCents * (data.multiplier || 0));
+      setDiceResult({
+        label: data.label,
+        won: data.won,
+        bonusCents: data.bonus_cents,
+        payoutCents
+      });
       if (data.won) {
         setDiceStatus({
           type: "success",
-          message: `Gagne ! Bonus +${(data.bonus_cents / 100).toFixed(2)} MAD.`
+          message: `Gagne ! +${(payoutCents / 100).toFixed(2)} MAD.`
         });
         setGameWinData({
           game: "Roue",
-          reward: data.bonus_cents,
+          reward: payoutCents,
           newBalance: data.new_balance_cents,
           label: data.label
         });
         setShowGameWinModal(true);
       } else {
-        setDiceStatus({ type: "error", message: "Oops, try again." });
+        if ((data.label || "").toLowerCase().includes("oops")) {
+          setDiceStatus({ type: "error", message: "Oops, try again." });
+        } else {
+          setDiceStatus({ type: "error", message: "" });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -2006,7 +2016,7 @@ if (loginTimeStr) {
       if (data.won) {
         setPlinkoResult({
           type: "success",
-          message: `Gagne ! x${data.multiplier} (+${(data.bonus_cents / 100).toFixed(2)} MAD).`
+          message: `Resultat: x${data.multiplier}`
         });
         setGameWinData({
           game: "Plinko",
@@ -2021,7 +2031,7 @@ if (loginTimeStr) {
           setShowGameWinModal(true);
         }, 1200);
       } else {
-        setPlinkoResult({ type: "error", message: "Perdu." });
+        setPlinkoResult({ type: "success", message: `Resultat: x${data.multiplier}` });
       }
     } catch (err) {
       console.error(err);
@@ -3591,35 +3601,37 @@ if (loginTimeStr) {
                       </div>
                     </div>
 
-                    {/* Jeux Card */}
-                    <button
-                      onClick={() => {
-                        setSelectedPlatform('games');
-                        setGameStatus({ type: '', message: '' });
-                        setGameRevealed([]);
-                        setGameMatched([]);
-                        setGameCards([]);
-                        setGameActive(false);
-                        setDiceStatus({ type: "", message: "" });
-                        setDiceResult(null);
-                        setActiveGameTab("memory");
-                        fetchGameHistory();
-                      }}
-                      className="group relative bg-gradient-to-br from-indigo-500/90 via-sky-500/90 to-emerald-600/90 hover:from-indigo-500 hover:via-sky-500 hover:to-emerald-600 rounded-2xl p-6 border border-indigo-400/30 hover:border-indigo-300/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/40"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 7H8a3 3 0 00-3 3v4a3 3 0 003 3h3m2-10h3a3 3 0 013 3v4a3 3 0 01-3 3h-3M9.5 10.5h.01M9.5 13.5h.01M14.5 11.5h.01M17.5 11.5h.01" />
-                        </svg>
-                        <div className="text-center">
-                          <h3 className="text-xl font-bold text-white mb-1">Jeux</h3>
-                          <p className="text-xs text-white/80">Jeux de cartes et plus</p>
+                    {/* Jeux Card (VIP only) */}
+                    {isUserVip && (
+                      <button
+                        onClick={() => {
+                          setSelectedPlatform('games');
+                          setGameStatus({ type: '', message: '' });
+                          setGameRevealed([]);
+                          setGameMatched([]);
+                          setGameCards([]);
+                          setGameActive(false);
+                          setDiceStatus({ type: "", message: "" });
+                          setDiceResult(null);
+                          setActiveGameTab("memory");
+                          fetchGameHistory();
+                        }}
+                        className="group relative bg-gradient-to-br from-indigo-500/90 via-sky-500/90 to-emerald-600/90 hover:from-indigo-500 hover:via-sky-500 hover:to-emerald-600 rounded-2xl p-6 border border-indigo-400/30 hover:border-indigo-300/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/40"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 7H8a3 3 0 00-3 3v4a3 3 0 003 3h3m2-10h3a3 3 0 013 3v4a3 3 0 01-3 3h-3M9.5 10.5h.01M9.5 13.5h.01M14.5 11.5h.01M17.5 11.5h.01" />
+                          </svg>
+                          <div className="text-center">
+                            <h3 className="text-xl font-bold text-white mb-1">Jeux</h3>
+                            <p className="text-xs text-white/80">Jeux de cartes et plus</p>
+                          </div>
+                          <div className="absolute top-2 right-2 bg-white/20 rounded-full px-3 py-1">
+                            <span className="text-[10px] font-semibold text-white">{L.active || 'Actif'}</span>
+                          </div>
                         </div>
-                        <div className="absolute top-2 right-2 bg-white/20 rounded-full px-3 py-1">
-                          <span className="text-[10px] font-semibold text-white">{L.active || 'Actif'}</span>
-                        </div>
-                      </div>
-                    </button>
+                      </button>
+                    )}
                   </div>
                 </section>
               )}
@@ -4091,7 +4103,7 @@ if (loginTimeStr) {
                           <div>
                             <p className="text-xs text-slate-400">Jeu 2</p>
                             <p className="text-lg font-semibold text-white">Roue Neon</p>
-                            <p className="text-[11px] text-slate-400">Gains max x1 + Oops</p>
+                            <p className="text-[11px] text-slate-400">Gains max x2 + Oops</p>
                           </div>
                           <div
                             className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-[0_0_22px_rgba(16,185,129,0.7)]"
@@ -4217,7 +4229,7 @@ if (loginTimeStr) {
                     {activeGameTab === "dice" && (
                       <div className="rounded-xl border border-emerald-500/30 bg-slate-800/40 p-4">
                         <p className="text-sm font-semibold text-white">Roue Neon</p>
-                        <p className="text-xs text-slate-400 mt-1">Gains max x1 + Oops.</p>
+                        <p className="text-xs text-slate-400 mt-1">Gains max x2 + Oops.</p>
                         <div className="mt-4 flex items-center justify-center">
                           <div className="relative">
                             <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
@@ -4283,6 +4295,11 @@ if (loginTimeStr) {
                         {diceResult && (
                           <div className="mt-2 text-xs text-slate-300">
                             Resultat: <span className="font-semibold text-white">{diceResult.label}</span>
+                            {diceResult.won && (
+                              <span className="ml-2 text-emerald-400">
+                                +{(diceResult.payoutCents / 100).toFixed(2)} MAD
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -6698,7 +6715,9 @@ if (loginTimeStr) {
             <div className="relative z-10 text-center">
               <div className="text-4xl mb-3">🎉</div>
               <h3 className="text-xl font-semibold text-indigo-300 mb-1">Gain obtenu</h3>
-              <p className="text-xs text-slate-400 mb-4">{gameWinData.game} • {gameWinData.label}</p>
+              <p className="text-xs text-slate-400 mb-4">
+                {gameWinData.game}{gameWinData.label ? ` • ${gameWinData.label}` : ""}
+              </p>
               <div className="text-3xl font-bold text-white mb-2">
                 +{(gameWinData.reward / 100).toFixed(2)} MAD
               </div>

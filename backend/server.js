@@ -1741,12 +1741,12 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
       { label: "x0.8", multiplier: 0.8 },
       { label: "x0.9", multiplier: 0.9 },
       { label: "x1.0", multiplier: 1.0 },
-      { label: "x0.25", multiplier: 0.25 },
-      { label: "x0.35", multiplier: 0.35 },
-      { label: "x0.45", multiplier: 0.45 },
-      { label: "x0.55", multiplier: 0.55 },
-      { label: "x0.65", multiplier: 0.65 },
-      { label: "x0.75", multiplier: 0.75 },
+      { label: "x1.2", multiplier: 1.2 },
+      { label: "x1.4", multiplier: 1.4 },
+      { label: "x1.6", multiplier: 1.6 },
+      { label: "x1.8", multiplier: 1.8 },
+      { label: "x2.0", multiplier: 2.0 },
+      { label: "x1.1", multiplier: 1.1 },
       { label: "Oops, try again", multiplier: 0 },
       { label: "Oops, try again", multiplier: 0 },
       { label: "Oops, try again", multiplier: 0 }
@@ -1831,12 +1831,18 @@ app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
       { label: "x2", multiplier: 2.0 },
       { label: "x10", multiplier: 10.0 }
     ];
-    const roll = Math.floor(Math.random() * 1000) + 1; // 1-1000
+    const roll = Math.floor(Math.random() * 10000) + 1; // 1-10000
     let bucketIndex = 0;
     if (roll === 1) {
-      bucketIndex = 4; // x10 = 0.1%
+      bucketIndex = 3; // x2 = 0.01%
+    } else if (roll === 2) {
+      bucketIndex = 4; // x10 = 0.01%
+    } else if (roll <= 4002) {
+      bucketIndex = 0; // x0.1 = 40%
+    } else if (roll <= 8002) {
+      bucketIndex = 1; // x0.8 = 40%
     } else {
-      bucketIndex = Math.floor(Math.random() * 4);
+      bucketIndex = 2; // x1.1 = 19.98%
     }
     const bucket = buckets[bucketIndex];
     const payoutCents = Math.floor(betCents * bucket.multiplier);
