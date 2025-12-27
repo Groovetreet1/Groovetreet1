@@ -1825,21 +1825,18 @@ app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
     }
 
     const buckets = [
-      { label: "x0.1", multiplier: 0.1, weight: 15 },
-      { label: "x0.8", multiplier: 0.8, weight: 25 },
-      { label: "x1.1", multiplier: 1.1, weight: 30 },
-      { label: "x2", multiplier: 2.0, weight: 20 },
-      { label: "x10", multiplier: 10.0, weight: 10 }
+      { label: "x0.1", multiplier: 0.1 },
+      { label: "x0.8", multiplier: 0.8 },
+      { label: "x1.1", multiplier: 1.1 },
+      { label: "x2", multiplier: 2.0 },
+      { label: "x10", multiplier: 10.0 }
     ];
-    const totalWeight = buckets.reduce((sum, b) => sum + b.weight, 0);
-    let roll = Math.random() * totalWeight;
+    const roll = Math.floor(Math.random() * 1000) + 1; // 1-1000
     let bucketIndex = 0;
-    for (let i = 0; i < buckets.length; i += 1) {
-      roll -= buckets[i].weight;
-      if (roll <= 0) {
-        bucketIndex = i;
-        break;
-      }
+    if (roll === 1) {
+      bucketIndex = 4; // x10 = 0.1%
+    } else {
+      bucketIndex = Math.floor(Math.random() * 4);
     }
     const bucket = buckets[bucketIndex];
     const payoutCents = Math.floor(betCents * bucket.multiplier);

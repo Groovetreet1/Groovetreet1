@@ -147,6 +147,7 @@ export default function DashboardPage() {
   const [plinkoResult, setPlinkoResult] = useState(null);
   const [plinkoDrop, setPlinkoDrop] = useState(null);
   const plinkoTimerRef = useRef(null);
+  const plinkoWinTimerRef = useRef(null);
   const gameWheelLabels = [
     "x0.2", "Oops", "x0.3", "x0.4", "x0.5", "Oops",
     "x0.6", "x0.7", "x0.8", "x0.9", "x1.0", "Oops",
@@ -1972,14 +1973,14 @@ if (loginTimeStr) {
       setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
       const dropId = Date.now();
       const slotIndex = typeof data.bucket_index === "number" ? data.bucket_index : 0;
-      const targetX = (slotIndex - 1) * 40;
+      const targetX = (slotIndex - 2) * 40;
       const rows = 13;
       const stepY = 14;
       const boardHeight = 288;
       const binHeight = 28;
       const binPadding = 16;
       const ballSize = 16;
-      const finalY = boardHeight - binPadding - Math.floor(binHeight / 2) - Math.floor(ballSize / 2);
+      const finalY = boardHeight - binPadding - ballSize - 2;
       const stepX = 28;
       const path = [];
       let x = 0;
@@ -2013,9 +2014,14 @@ if (loginTimeStr) {
           newBalance: data.new_balance_cents,
           label: `x${data.multiplier}`
         });
-        setShowGameWinModal(true);
+        if (plinkoWinTimerRef.current) {
+          clearTimeout(plinkoWinTimerRef.current);
+        }
+        plinkoWinTimerRef.current = setTimeout(() => {
+          setShowGameWinModal(true);
+        }, 1200);
       } else {
-        setPlinkoResult({ type: "error", message: `Perdu. x${data.multiplier}` });
+        setPlinkoResult({ type: "error", message: "Perdu." });
       }
     } catch (err) {
       console.error(err);
