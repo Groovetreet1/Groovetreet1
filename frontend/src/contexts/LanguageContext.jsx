@@ -86,6 +86,15 @@ export const translations = {
     sendingLink: "Envoi...",
     forgotPasswordError: "Erreur lors de l'envoi.",
     forgotPasswordSuccess: "Email de réinitialisation envoyé.",
+    forgotPasswordWhatsappSuccess: "WhatsApp envoye avec le lien de reinitialisation.",
+    forgotPasswordWhatsappFailed: "Email envoye. WhatsApp non envoye.",
+    forgotPasswordPhoneTitle: "Recevoir le lien par WhatsApp",
+    forgotPasswordPhoneSubtitle: "Ajoutez un numero marocain (06/07) pour recevoir le lien.",
+    phoneLabel: "Numero de telephone",
+    phonePlaceholder: "06XXXXXXXX",
+    phoneInvalid: "Numero invalide. Utilisez 10 chiffres (06 ou 07).",
+    phoneSend: "Envoyer par WhatsApp",
+    phoneSkip: "Continuer sans WhatsApp",
     
     // Reset Password Page
     resetPasswordTitle: "Réinitialiser le mot de passe",
@@ -274,6 +283,15 @@ export const translations = {
     sendingLink: "كنصيفط...",
     forgotPasswordError: "مشكل في الإرسال.",
     forgotPasswordSuccess: "تصيفط إيميل إعادة التعيين.",
+    forgotPasswordWhatsappSuccess: "تصيفط واتساب فيه رابط إعادة التعيين.",
+    forgotPasswordWhatsappFailed: "تصيفط الإيميل، واتساب ما تصيفطش.",
+    forgotPasswordPhoneTitle: "خد الرابط عبر واتساب",
+    forgotPasswordPhoneSubtitle: "دخل رقم مغربي (06/07) باش يوصلك الرابط.",
+    phoneLabel: "رقم الهاتف",
+    phonePlaceholder: "06XXXXXXXX",
+    phoneInvalid: "رقم غير صالح. خاصو 10 أرقام ويبدا ب06 أو 07.",
+    phoneSend: "صيفط عبر واتساب",
+    phoneSkip: "كمل بلا واتساب",
     
     // Reset Password Page
     resetPasswordTitle: "إعادة تعيين كلمة السر",

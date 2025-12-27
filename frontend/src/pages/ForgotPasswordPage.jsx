@@ -6,9 +6,12 @@ import { useTranslation } from "../contexts/LanguageContext.jsx";
 export default function ForgotPasswordPage() {
   const { t, language } = useTranslation();
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
   const navigate = useNavigate();
 
   // Redirect to dashboard if already logged in
@@ -20,8 +23,7 @@ export default function ForgotPasswordPage() {
     }
   }, [navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const sendResetRequest = async (phoneValue) => {
     setError("");
     setMessage("");
     setLoading(true);
@@ -30,7 +32,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch(buildApiUrl("/api/auth/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(phoneValue ? { email, phone: phoneValue } : { email }),
       });
 
       const data = await res.json();
@@ -38,7 +40,12 @@ export default function ForgotPasswordPage() {
       if (!res.ok) {
         setError(data.message || t.forgotPasswordError);
       } else {
-        setMessage(data.message || t.forgotPasswordSuccess);
+        const successText = data.whatsappSent
+          ? t.forgotPasswordWhatsappSuccess
+          : data.whatsappAttempted
+            ? t.forgotPasswordWhatsappFailed
+            : data.message || t.forgotPasswordSuccess;
+        setMessage(successText);
         setEmail("");
       }
     } catch (err) {
@@ -47,6 +54,29 @@ export default function ForgotPasswordPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setPhoneError("");
+    setShowPhoneModal(true);
+  };
+
+  const handleSendWithPhone = async () => {
+    const cleaned = phone.replace(/\s+/g, "");
+    if (!/^0[67]\d{8}$/.test(cleaned)) {
+      setPhoneError(t.phoneInvalid);
+      return;
+    }
+    setShowPhoneModal(false);
+    setPhone("");
+    await sendResetRequest(cleaned);
+  };
+
+  const handleSendWithoutPhone = async () => {
+    setShowPhoneModal(false);
+    setPhone("");
+    await sendResetRequest(null);
   };
 
   return (
@@ -155,6 +185,61 @@ export default function ForgotPasswordPage() {
           </Link>
         </div>
       </div>
+
+      {showPhoneModal && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/70 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">
+              {t.forgotPasswordPhoneTitle}
+            </h2>
+            <p className="text-sm text-slate-600 mb-4">
+              {t.forgotPasswordPhoneSubtitle}
+            </p>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              {t.phoneLabel}
+            </label>
+            <input
+              type="tel"
+              placeholder={t.phonePlaceholder}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-base text-slate-900 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPhoneError("");
+              }}
+            />
+            {phoneError && (
+              <div className="mt-2 text-xs text-red-600">{phoneError}</div>
+            )}
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                className="w-full py-3 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                onClick={handleSendWithPhone}
+                disabled={loading}
+              >
+                {t.phoneSend}
+              </button>
+              <button
+                type="button"
+                className="w-full py-3 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+                onClick={handleSendWithoutPhone}
+                disabled={loading}
+              >
+                {t.phoneSkip}
+              </button>
+              <button
+                type="button"
+                className="w-full py-2 text-sm text-slate-500 hover:text-slate-700"
+                onClick={() => setShowPhoneModal(false)}
+                disabled={loading}
+              >
+                {t.cancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
