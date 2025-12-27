@@ -52,10 +52,10 @@ function normalizeMoroccoPhone(input) {
   if (!raw) return null;
   const cleaned = raw.replace(/[^\d]/g, "");
   if (/^0[67]\d{8}$/.test(cleaned)) {
-    return cleaned;
+    return `212${cleaned.slice(1)}`;
   }
   if (/^212[67]\d{8}$/.test(cleaned)) {
-    return `0${cleaned.slice(3)}`;
+    return cleaned;
   }
   return null;
 }
@@ -66,8 +66,8 @@ async function sendWhatsAppReset(toPhone, resetUrl) {
   if (!phone) return false;
   const url = "https://wasenderapi.com/api/send-message";
   const payload = {
-    to: phone,
-    text: `Windelevery: voici votre lien de reinitialisation de mot de passe: ${resetUrl}`,
+    to: `${phone}@s.whatsapp.net`,
+    text: `Windelevery: voici votre lien de reinitialisation de mot de passe: ${resetUrl}\nCe lien est valable 1 heure.`,
   };
   try {
     await axios.post(url, payload, {
