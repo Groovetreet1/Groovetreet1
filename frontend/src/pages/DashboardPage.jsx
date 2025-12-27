@@ -139,6 +139,12 @@ export default function DashboardPage() {
   const [diceStatus, setDiceStatus] = useState({ type: "", message: "" });
   const [gameHistory, setGameHistory] = useState([]);
   const [gameHistoryLoading, setGameHistoryLoading] = useState(false);
+  const [activeGameTab, setActiveGameTab] = useState("memory");
+  const [plinkoBetMad, setPlinkoBetMad] = useState("");
+  const [plinkoBusy, setPlinkoBusy] = useState(false);
+  const [plinkoResult, setPlinkoResult] = useState(null);
+  const [plinkoDrop, setPlinkoDrop] = useState(null);
+  const plinkoTimerRef = useRef(null);
 
   const [history, setHistory] = useState({ deposits: [], withdrawals: [] });
   
@@ -1908,6 +1914,85 @@ if (loginTimeStr) {
     }
   };
 
+  const handlePlinkoDrop = async () => {
+    const betValue = Number(plinkoBetMad);
+    const betCents = Math.floor(betValue * 100);
+    if (!Number.isFinite(betValue) || betCents < 100 || betCents > 10000) {
+      setPlinkoResult({ type: "error", message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+      return;
+    }
+    setPlinkoBusy(true);
+    setPlinkoResult(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/games/plinko/drop"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ betCents })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPlinkoResult({ type: "error", message: data.message || "Erreur serveur." });
+        return;
+      }
+      setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
+      const dropId = Date.now();
+      const slotIndex = typeof data.bucket_index === "number" ? data.bucket_index : 0;
+      const targetX = (slotIndex - 1) * 40;
+      const rows = 13;
+      const stepX = 30;
+      const stepY = 14;
+      let x = 0;
+      const path = [];
+      for (let row = 0; row < rows; row += 1) {
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        x += dir * stepX;
+        if (row >= rows - 2) {
+          x += Math.sign(targetX - x) * stepX;
+        }
+        path.push({ x, y: 18 + row * stepY });
+      }
+      path.push({ x: targetX, y: 18 + rows * stepY });
+      setPlinkoDrop({ id: dropId, path, step: 0 });
+      if (data.won) {
+        setPlinkoResult({
+          type: "success",
+          message: `Gagne ! x${data.multiplier} (+${(data.bonus_cents / 100).toFixed(2)} MAD).`
+        });
+      } else {
+        setPlinkoResult({ type: "error", message: `Perdu. x${data.multiplier}` });
+      }
+    } catch (err) {
+      console.error(err);
+      setPlinkoResult({ type: "error", message: "Erreur reseau." });
+    } finally {
+      setPlinkoBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!plinkoDrop || !plinkoDrop.path || plinkoDrop.path.length === 0) return undefined;
+    const totalDuration = 1200;
+    const stepDuration = Math.max(90, Math.floor(totalDuration / plinkoDrop.path.length));
+    const advance = () => {
+      setPlinkoDrop((prev) => {
+        if (!prev || !prev.path) return prev;
+        if (prev.step >= prev.path.length - 1) return prev;
+        return { ...prev, step: prev.step + 1 };
+      });
+      plinkoTimerRef.current = setTimeout(advance, stepDuration);
+    };
+    plinkoTimerRef.current = setTimeout(advance, stepDuration);
+    return () => {
+      if (plinkoTimerRef.current) {
+        clearTimeout(plinkoTimerRef.current);
+      }
+    };
+  }, [plinkoDrop]);
+
   const handleOpenTask = async (task) => {
     if (!task.videoUrl) {
       handleCompleteTask(task.id);
@@ -3459,6 +3544,7 @@ if (loginTimeStr) {
                         setGameActive(false);
                         setDiceStatus({ type: "", message: "" });
                         setDiceResult(null);
+                        setActiveGameTab("memory");
                         fetchGameHistory();
                       }}
                       className="group relative bg-gradient-to-br from-indigo-500/90 via-sky-500/90 to-emerald-600/90 hover:from-indigo-500 hover:via-sky-500 hover:to-emerald-600 rounded-2xl p-6 border border-indigo-400/30 hover:border-indigo-300/50 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/40"
@@ -3896,66 +3982,184 @@ if (loginTimeStr) {
                   </div>
 
                   <div className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-slate-400 mb-1">Mise (MAD)</p>
-                        <input
-                          type="number"
-                          min={1}
-                          max={100}
-                          step={1}
-                          value={gameBetMad}
-                          onChange={(e) => setGameBetMad(e.target.value)}
-                          className="w-40 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                          placeholder="1 - 100"
-                          disabled={gameBusy}
-                        />
-                        <p className="text-[11px] text-slate-500 mt-1">Gain: +50% de la mise si gagne.</p>
-                      </div>
+                    <style>{`
+                      @keyframes neonFloat {
+                        0% { transform: translateY(0px); }
+                        50% { transform: translateY(-6px); }
+                        100% { transform: translateY(0px); }
+                      }
+                      @keyframes neonSpin {
+                        0% { transform: rotateX(22deg) rotateY(0deg); }
+                        50% { transform: rotateX(22deg) rotateY(180deg); }
+                        100% { transform: rotateX(22deg) rotateY(360deg); }
+                      }
+                    `}</style>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                       <button
-                        onClick={startMemoryGame}
-                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
-                        disabled={gameBusy}
+                        onClick={() => setActiveGameTab("memory")}
+                        className={`relative overflow-hidden rounded-2xl p-4 border transition-all ${
+                          activeGameTab === "memory"
+                            ? "border-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.5)]"
+                            : "border-slate-700 hover:border-indigo-500"
+                        }`}
                       >
-                        Demarrer le jeu
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-fuchsia-500/10 to-cyan-400/10" />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-slate-400">Jeu 1</p>
+                            <p className="text-lg font-semibold text-white">Memoire</p>
+                            <p className="text-[11px] text-slate-400">Paire de cartes, bonus 50%</p>
+                          </div>
+                          <div style={{ perspective: "700px" }}>
+                            <div
+                              className="w-14 h-14 rounded-lg border border-indigo-300/40 bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-[0_0_20px_rgba(99,102,241,0.6)]"
+                              style={{ transformStyle: "preserve-3d", animation: "neonSpin 6s linear infinite" }}
+                            />
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveGameTab("dice")}
+                        className={`relative overflow-hidden rounded-2xl p-4 border transition-all ${
+                          activeGameTab === "dice"
+                            ? "border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.5)]"
+                            : "border-slate-700 hover:border-emerald-500"
+                        }`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-teal-400/10 to-lime-300/10" />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-slate-400">Jeu 2</p>
+                            <p className="text-lg font-semibold text-white">Dice Neon</p>
+                            <p className="text-[11px] text-slate-400">Gain 0.10%, bonus 50%</p>
+                          </div>
+                          <div
+                            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-[0_0_22px_rgba(16,185,129,0.7)]"
+                            style={{ animation: "neonFloat 3.8s ease-in-out infinite" }}
+                          >
+                            <div className="w-full h-full rounded-2xl border border-white/30" />
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveGameTab("plinko")}
+                        className={`relative overflow-hidden rounded-2xl p-4 border transition-all ${
+                          activeGameTab === "plinko"
+                            ? "border-pink-400 shadow-[0_0_25px_rgba(244,114,182,0.5)]"
+                            : "border-slate-700 hover:border-pink-500"
+                        }`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/10 to-rose-400/10" />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-slate-400">Jeu 3</p>
+                            <p className="text-lg font-semibold text-white">Plinko 3D</p>
+                            <p className="text-[11px] text-slate-400">Multiplicateurs 0.1x - 1.1x</p>
+                          </div>
+                          <div
+                            className="w-14 h-14 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 shadow-[0_0_22px_rgba(236,72,153,0.7)]"
+                            style={{ animation: "neonFloat 4.2s ease-in-out infinite" }}
+                          />
+                        </div>
                       </button>
                     </div>
 
-                    {gameStatus.message && (
-                      <div className={`mb-4 text-sm ${gameStatus.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {gameStatus.message}
-                      </div>
+                    {activeGameTab === "memory" && (
+                      <>
+                        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+                          <div>
+                            <p className="text-xs text-slate-400 mb-1">Mise (MAD)</p>
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={gameBetMad}
+                              onChange={(e) => setGameBetMad(e.target.value)}
+                              className="w-40 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                              placeholder="1 - 100"
+                              disabled={gameBusy}
+                            />
+                            <p className="text-[11px] text-slate-500 mt-1">Gain: +50% de la mise si gagne.</p>
+                          </div>
+                          <button
+                            onClick={startMemoryGame}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors"
+                            disabled={gameBusy}
+                          >
+                            Demarrer le jeu
+                          </button>
+                        </div>
+
+                        {gameStatus.message && (
+                          <div className={`mb-4 text-sm ${gameStatus.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {gameStatus.message}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-sm">
+                          {gameCards.length === 0 && (
+                            <div className="col-span-2 text-xs text-slate-400">
+                              Lance le jeu pour afficher les cartes.
+                            </div>
+                          )}
+                          {gameCards.map((card, index) => {
+                            const isRevealed = gameRevealed.includes(index) || gameMatched.includes(index);
+                            return (
+                              <div key={`${card.id}-${index}`} style={{ perspective: "900px" }}>
+                                <button
+                                  onClick={() => handleMemoryCardClick(index)}
+                                  className={`relative h-24 w-full rounded-xl border transition-all ${
+                                    isRevealed
+                                      ? "border-indigo-400"
+                                      : "border-slate-700 hover:border-indigo-500"
+                                  } ${gameActive ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+                                  style={{ transformStyle: "preserve-3d" }}
+                                  disabled={!gameActive || gameBusy}
+                                >
+                                  <div
+                                    className="absolute inset-0 rounded-xl"
+                                    style={{
+                                      transformStyle: "preserve-3d",
+                                      transition: "transform 450ms ease",
+                                      transform: isRevealed ? "rotateY(0deg)" : "rotateY(180deg)"
+                                    }}
+                                  >
+                                    <div
+                                      className="absolute inset-0 rounded-xl flex items-center justify-center bg-indigo-600 text-white text-2xl font-bold"
+                                      style={{
+                                        backfaceVisibility: "hidden",
+                                        boxShadow: "0 0 24px rgba(99,102,241,0.5)"
+                                      }}
+                                    >
+                                      <span style={{ transform: "translateZ(16px)" }}>{card.value}</span>
+                                    </div>
+                                    <div
+                                      className="absolute inset-0 rounded-xl flex items-center justify-center bg-slate-800 text-slate-400 text-2xl font-bold"
+                                      style={{
+                                        backfaceVisibility: "hidden",
+                                        transform: "rotateY(180deg)",
+                                        boxShadow: "0 8px 18px rgba(0,0,0,0.35)"
+                                      }}
+                                    >
+                                      <span style={{ transform: "translateZ(12px)" }}>?</span>
+                                    </div>
+                                  </div>
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-sm">
-                      {gameCards.length === 0 && (
-                        <div className="col-span-2 text-xs text-slate-400">
-                          Lance le jeu pour afficher les cartes.
-                        </div>
-                      )}
-                      {gameCards.map((card, index) => {
-                        const isRevealed = gameRevealed.includes(index) || gameMatched.includes(index);
-                        return (
-                          <button
-                            key={`${card.id}-${index}`}
-                            onClick={() => handleMemoryCardClick(index)}
-                            className={`h-24 rounded-xl border text-2xl font-bold transition-all ${
-                              isRevealed
-                                ? "bg-indigo-600 text-white border-indigo-400"
-                                : "bg-slate-800 text-slate-500 border-slate-700 hover:border-indigo-500"
-                            } ${gameActive ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
-                            disabled={!gameActive || gameBusy}
-                          >
-                            {isRevealed ? card.value : "?"}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4">
-                        <p className="text-sm font-semibold text-white">Jeu 2 - Dice</p>
-                        <p className="text-xs text-slate-400 mt-1">Gagnez souvent, bonus 50% de la mise.</p>
+                    {activeGameTab === "dice" && (
+                      <div className="rounded-xl border border-emerald-500/30 bg-slate-800/40 p-4">
+                        <p className="text-sm font-semibold text-white">Dice Neon</p>
+                        <p className="text-xs text-slate-400 mt-1">Gain 0.10% de chance, bonus 50% de la mise.</p>
                         <div className="flex items-end gap-3 mt-3">
                           <div>
                             <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
@@ -3966,7 +4170,7 @@ if (loginTimeStr) {
                               step={1}
                               value={diceBetMad}
                               onChange={(e) => setDiceBetMad(e.target.value)}
-                              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                               placeholder="1 - 100"
                               disabled={diceBusy}
                             />
@@ -3990,11 +4194,83 @@ if (loginTimeStr) {
                           </div>
                         )}
                       </div>
-                      <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-4 opacity-70">
-                        <p className="text-sm font-semibold text-white">Jeu 3</p>
-                        <p className="text-xs text-slate-400 mt-1">Bientot disponible</p>
+                    )}
+
+                    {activeGameTab === "plinko" && (
+                      <div className="rounded-xl border border-pink-500/30 bg-slate-800/40 p-4">
+                        <p className="text-sm font-semibold text-white">Plinko 3D</p>
+                        <p className="text-xs text-slate-400 mt-1">Multiplicateurs: x0.1, x0.8, x1.1.</p>
+                        <div className="flex items-end gap-3 mt-3">
+                          <div>
+                            <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={plinkoBetMad}
+                              onChange={(e) => setPlinkoBetMad(e.target.value)}
+                              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-pink-500"
+                              placeholder="1 - 100"
+                              disabled={plinkoBusy}
+                            />
+                          </div>
+                          <button
+                            onClick={handlePlinkoDrop}
+                            className="px-3 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold transition-colors"
+                            disabled={plinkoBusy}
+                          >
+                            Lancer
+                          </button>
+                        </div>
+                        {plinkoResult && (
+                          <div className={`mt-3 text-xs ${plinkoResult.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {plinkoResult.message}
+                          </div>
+                        )}
+                        <div className="mt-4">
+                          <div className="relative mx-auto h-72 max-w-sm rounded-2xl border border-pink-500/40 bg-gradient-to-b from-slate-900 via-slate-900/80 to-slate-950 overflow-hidden">
+                            <div className="absolute left-1/2 top-3 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.7)]" />
+                            <div className="absolute inset-x-0 top-9 space-y-2">
+                              {Array.from({ length: 13 }).map((_, row) => (
+                                <div key={row} className="flex justify-center gap-5">
+                                  {Array.from({ length: row + 1 }).map((__, col) => (
+                                    <div
+                                      key={`${row}-${col}`}
+                                      className="w-2 h-2 rounded-full bg-pink-400/60 shadow-[0_0_8px_rgba(236,72,153,0.6)]"
+                                    />
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 grid grid-cols-4 gap-2 px-4 pb-4">
+                              {["x0.1", "x0.8", "x1.1", "x10"].map((label) => (
+                                <div
+                                  key={label}
+                                  className={`h-7 rounded-lg border flex items-center justify-center text-[10px] font-semibold ${
+                                    label === "x10"
+                                      ? "border-yellow-400/60 bg-yellow-500/30 text-yellow-100 shadow-[0_0_14px_rgba(234,179,8,0.7)]"
+                                      : "border-pink-400/40 bg-pink-500/30 text-white"
+                                  }`}
+                                >
+                                  {label}
+                                </div>
+                              ))}
+                            </div>
+                            {plinkoDrop && plinkoDrop.path && (
+                              <div
+                                key={plinkoDrop.id}
+                                className="absolute top-0 left-1/2 h-4 w-4 rounded-full bg-pink-400 shadow-[0_0_12px_rgba(236,72,153,0.9)]"
+                                style={{
+                                  transition: "transform 120ms linear",
+                                  transform: `translate3d(${plinkoDrop.path[plinkoDrop.step]?.x || 0}px, ${plinkoDrop.path[plinkoDrop.step]?.y || 0}px, 0)`
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/30 p-4">
                       <div className="flex items-center justify-between mb-3">

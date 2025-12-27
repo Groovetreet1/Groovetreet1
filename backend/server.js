@@ -1791,6 +1791,94 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint: POST /api/games/plinko/drop - Jeu de plinko (multiplicateurs)
+app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const betCents = Number(req.body && req.body.betCents);
+    if (!Number.isFinite(betCents) || betCents < 100 || betCents > 10000) {
+      return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+    }
+
+    const buckets = [
+      { label: "x0.1", multiplier: 0.1, weight: 15 },
+      { label: "x0.8", multiplier: 0.8, weight: 25 },
+      { label: "x1.1", multiplier: 1.1, weight: 30 },
+      { label: "x2", multiplier: 2.0, weight: 0 },
+      { label: "x10", multiplier: 10.0, weight: 0 }
+    ];
+    const totalWeight = buckets.reduce((sum, b) => sum + b.weight, 0);
+    let roll = Math.random() * totalWeight;
+    let bucketIndex = 0;
+    for (let i = 0; i < buckets.length; i += 1) {
+      roll -= buckets[i].weight;
+      if (roll <= 0) {
+        bucketIndex = i;
+        break;
+      }
+    }
+    const bucket = buckets[bucketIndex];
+    const payoutCents = Math.floor(betCents * bucket.multiplier);
+    const deltaCents = payoutCents - betCents;
+    const bonusCents = Math.max(0, deltaCents);
+    const won = payoutCents >= betCents;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
+        "SELECT balance_cents FROM users WHERE id = ? FOR UPDATE",
+        [userId]
+      );
+      if (!rows || !rows[0]) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+
+      const balanceBefore = rows[0].balance_cents;
+      if (balanceBefore < betCents) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Solde insuffisant pour cette mise." });
+      }
+
+      const newBalance = balanceBefore + deltaCents;
+      await conn.execute("UPDATE users SET balance_cents = ? WHERE id = ?", [
+        newBalance,
+        userId
+      ]);
+      await conn.execute(
+        "INSERT INTO games_history (user_id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          "plinko",
+          betCents,
+          bonusCents,
+          won ? 1 : 0,
+          balanceBefore,
+          newBalance
+        ]
+      );
+      await conn.commit();
+
+      return res.json({
+        bucket_index: bucketIndex,
+        multiplier: bucket.multiplier,
+        won,
+        bonus_cents: bonusCents,
+        new_balance_cents: newBalance
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 // Endpoint: GET /api/games/history - Historique des jeux
 app.get("/api/games/history", authMiddleware, async (req, res) => {
   try {
