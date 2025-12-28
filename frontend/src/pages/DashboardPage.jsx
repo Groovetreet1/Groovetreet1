@@ -160,6 +160,95 @@ export default function DashboardPage() {
     multiplier: 0,
     active: false
   });
+  
+  // Sound effects for aviator game
+  const flyingSoundRef = useRef(null);
+  const winSoundRef = useRef(null);
+  const loseSoundRef = useRef(null);
+  
+  // Sound effects for dice game
+  const diceSpinSoundRef = useRef(null);
+  
+  // Sound effects for plinko game
+  const plinkoDropSoundRef = useRef(null);
+  
+  // Initialize sound effects
+  useEffect(() => {
+    // Create audio context and generate simple tones
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Flying sound - continuous tone
+    const createFlyingSound = () => {
+      if (flyingSoundRef.current) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.start();
+      
+      flyingSoundRef.current = { oscillator, gainNode, audioContext };
+    };
+    
+    // Win sound - ascending tones
+    const createWinSound = () => {
+      const playWinSound = async () => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+        oscillator.frequency.linearRampToValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
+      };
+      
+      playWinSound();
+    };
+    
+    // Lose sound - descending tones
+    const createLoseSound = () => {
+      const playLoseSound = async () => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+        oscillator.frequency.linearRampToValueAtTime(261.63, audioContext.currentTime + 0.3); // C4
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
+      };
+      
+      playLoseSound();
+    };
+    
+    // Cleanup function
+    return () => {
+      if (flyingSoundRef.current) {
+        flyingSoundRef.current.oscillator.stop();
+        flyingSoundRef.current.oscillator.disconnect();
+        flyingSoundRef.current.gainNode.disconnect();
+      }
+    };
+  }, []);
   const gameWheelLabels = [
     "x0.2", "Oops", "x0.3", "x0.4", "x0.5", "Oops",
     "x0.6", "x0.7", "x0.8", "x0.9", "x1.0", "Oops",
@@ -1893,7 +1982,25 @@ if (loginTimeStr) {
     setDiceStatus({ type: "", message: "" });
     setDiceResult(null);
     setGameWheelSpinning(true);
+    
+    // Create audio context for dice sound effects
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Start spinning sound
+    const spinOscillator = audioContext.createOscillator();
+    const spinGainNode = audioContext.createGain();
+    
+    spinOscillator.type = 'sine';
+    spinOscillator.frequency.setValueAtTime(200, audioContext.currentTime); // Low frequency
+    spinGainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+    
+    spinOscillator.connect(spinGainNode);
+    spinGainNode.connect(audioContext.destination);
+    
+    spinOscillator.start();
+    
     setGameWheelRotation((prev) => prev + 360 * 2);
+    
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(buildApiUrl("/api/games/dice/roll"), {
@@ -1914,7 +2021,49 @@ if (loginTimeStr) {
         const segmentAngle = 360 / gameWheelLabels.length;
         const target = (data.index * segmentAngle) + segmentAngle / 2;
         setGameWheelRotation((prev) => prev + 360 * 4 + target);
-        setTimeout(() => setGameWheelSpinning(false), 1200);
+        
+        // Stop spinning sound and play win/lose sound at the end
+        setTimeout(() => {
+          // Stop spinning sound
+          spinOscillator.stop(audioContext.currentTime + 0.1);
+          
+          // Play win or lose sound based on result
+          if (data.won) {
+            // Win sound - ascending tones
+            const winOscillator = audioContext.createOscillator();
+            const winGainNode = audioContext.createGain();
+            
+            winOscillator.type = 'sine';
+            winOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            winOscillator.frequency.linearRampToValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+            winGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            winGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            winOscillator.connect(winGainNode);
+            winGainNode.connect(audioContext.destination);
+            
+            winOscillator.start();
+            winOscillator.stop(audioContext.currentTime + 0.3);
+          } else {
+            // Lose sound - descending tones
+            const loseOscillator = audioContext.createOscillator();
+            const loseGainNode = audioContext.createGain();
+            
+            loseOscillator.type = 'sine';
+            loseOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            loseOscillator.frequency.linearRampToValueAtTime(261.63, audioContext.currentTime + 0.3); // C4
+            loseGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            loseGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            loseOscillator.connect(loseGainNode);
+            loseGainNode.connect(audioContext.destination);
+            
+            loseOscillator.start();
+            loseOscillator.stop(audioContext.currentTime + 0.3);
+          }
+          
+          setGameWheelSpinning(false);
+        }, 1200);
       }
       const payoutCents = Math.floor(betCents * (data.multiplier || 0));
       setDiceResult({
@@ -1945,6 +2094,15 @@ if (loginTimeStr) {
     } catch (err) {
       console.error(err);
       setDiceStatus({ type: "error", message: "Erreur reseau." });
+      
+      // Stop spinning sound in case of error
+      try {
+        spinOscillator.stop();
+      } catch (e) {
+        // Ignore error if oscillator already stopped
+      }
+      
+      setGameWheelSpinning(false);
     } finally {
       setDiceBusy(false);
     }
@@ -1977,6 +2135,28 @@ if (loginTimeStr) {
     }
     setPlinkoBusy(true);
     setPlinkoResult(null);
+    
+    // Create audio context for plinko sound effects
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Play drop sound when ball starts falling
+    const dropOscillator = audioContext.createOscillator();
+    const dropGainNode = audioContext.createGain();
+    
+    dropOscillator.type = 'square';
+    dropOscillator.frequency.setValueAtTime(300, audioContext.currentTime); // Medium frequency
+    dropGainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    
+    dropOscillator.connect(dropGainNode);
+    dropGainNode.connect(audioContext.destination);
+    
+    dropOscillator.start();
+    
+    // Stop the drop sound after a short time
+    setTimeout(() => {
+      dropOscillator.stop(audioContext.currentTime + 0.1);
+    }, 300);
+    
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(buildApiUrl("/api/games/plinko/drop"), {
@@ -2025,6 +2205,44 @@ if (loginTimeStr) {
       }
       path.push({ x: targetX, y: finalY });
       setPlinkoDrop({ id: dropId, path, step: 0 });
+      
+      // Play win or lose sound based on result when the ball reaches the bottom
+      setTimeout(() => {
+        if (data.won) {
+          // Win sound - ascending tones
+          const winOscillator = audioContext.createOscillator();
+          const winGainNode = audioContext.createGain();
+          
+          winOscillator.type = 'sine';
+          winOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          winOscillator.frequency.linearRampToValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+          winGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          winGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          winOscillator.connect(winGainNode);
+          winGainNode.connect(audioContext.destination);
+          
+          winOscillator.start();
+          winOscillator.stop(audioContext.currentTime + 0.3);
+        } else {
+          // Lose sound - descending tones
+          const loseOscillator = audioContext.createOscillator();
+          const loseGainNode = audioContext.createGain();
+          
+          loseOscillator.type = 'sine';
+          loseOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+          loseOscillator.frequency.linearRampToValueAtTime(261.63, audioContext.currentTime + 0.3); // C4
+          loseGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          loseGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          loseOscillator.connect(loseGainNode);
+          loseGainNode.connect(audioContext.destination);
+          
+          loseOscillator.start();
+          loseOscillator.stop(audioContext.currentTime + 0.3);
+        }
+      }, 1200); // Time to match the ball drop animation
+      
       if (data.won) {
         setPlinkoResult({
           type: "success",
@@ -2119,6 +2337,22 @@ if (loginTimeStr) {
       
       // Animate the flight with the result
       setTimeout(() => {
+        // Create audio context for sound effects
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Start flying sound
+        const flyingOscillator = audioContext.createOscillator();
+        const flyingGainNode = audioContext.createGain();
+        
+        flyingOscillator.type = 'sine';
+        flyingOscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+        flyingGainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+        
+        flyingOscillator.connect(flyingGainNode);
+        flyingGainNode.connect(audioContext.destination);
+        
+        flyingOscillator.start();
+        
         // Simulate flight animation
         const animationSteps = 25; // Number of animation steps
         const stepDuration = 80; // ms per step
@@ -2167,8 +2401,16 @@ if (loginTimeStr) {
               active: true
             });
             
-            // At the end of animation, show final result
+            // Change the flying sound frequency based on progress for variation
+            if (i % 3 === 0) { // Update every 3 steps
+              flyingOscillator.frequency.setValueAtTime(440 + (progress * 300), audioContext.currentTime);
+            }
+            
+            // At the end of animation, show final result and play win/lose sound
             if (i === animationSteps) {
+              // Stop flying sound
+              flyingOscillator.stop(audioContext.currentTime + 0.1);
+              
               setTimeout(() => {
                 setAviatorFlightPosition({
                   x: currentX,
@@ -2177,6 +2419,41 @@ if (loginTimeStr) {
                   multiplier: data.multiplier,
                   active: false
                 });
+                
+                // Play win or lose sound based on result
+                if (data.won) {
+                  // Win sound - ascending tones
+                  const winOscillator = audioContext.createOscillator();
+                  const winGainNode = audioContext.createGain();
+                  
+                  winOscillator.type = 'sine';
+                  winOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                  winOscillator.frequency.linearRampToValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+                  winGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                  winGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                  
+                  winOscillator.connect(winGainNode);
+                  winGainNode.connect(audioContext.destination);
+                  
+                  winOscillator.start();
+                  winOscillator.stop(audioContext.currentTime + 0.3);
+                } else {
+                  // Lose sound - descending tones
+                  const loseOscillator = audioContext.createOscillator();
+                  const loseGainNode = audioContext.createGain();
+                  
+                  loseOscillator.type = 'sine';
+                  loseOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                  loseOscillator.frequency.linearRampToValueAtTime(261.63, audioContext.currentTime + 0.3); // C4
+                  loseGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                  loseGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                  
+                  loseOscillator.connect(loseGainNode);
+                  loseGainNode.connect(audioContext.destination);
+                  
+                  loseOscillator.start();
+                  loseOscillator.stop(audioContext.currentTime + 0.3);
+                }
                 
                 if (data.won) {
                   setGameWinData({
@@ -4578,13 +4855,6 @@ if (loginTimeStr) {
                             Jouer
                           </button>
                         </div>
-                        {aviatorResult && (
-                          <div className={`mt-3 text-xs ${aviatorResult.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {aviatorResult.won 
-                              ? `Gagne ! Résultat: ${aviatorResult.label} - +${(aviatorResult.bonusCents / 100).toFixed(2)} MAD` 
-                              : `Résultat: ${aviatorResult.label}`}
-                          </div>
-                        )}
                         <div className="mt-4 relative h-64 rounded-lg bg-gradient-to-b from-sky-900/20 to-slate-900/80 border border-blue-500/30 overflow-hidden">
                           <style>{`
                             @keyframes floatClouds {
@@ -4682,10 +4952,7 @@ if (loginTimeStr) {
                               </div>
                             </div>
                             
-                            {/* Flight path indicator */}
-                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
-                              <p className="text-xs text-slate-400">Multiplicateur: <span className="text-blue-400 font-semibold">{aviatorFlightPosition.multiplier || '0.00'}</span>x</p>
-                            </div>
+
                             
                             {/* Result display during flight */}
                             {aviatorFlightPosition.active && (
@@ -4705,6 +4972,7 @@ if (loginTimeStr) {
                             )}
                           </div>
                         </div>
+
                       </div>
                     )}
 
