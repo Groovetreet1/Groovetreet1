@@ -148,6 +148,18 @@ export default function DashboardPage() {
   const [plinkoDrop, setPlinkoDrop] = useState(null);
   const plinkoTimerRef = useRef(null);
   const plinkoWinTimerRef = useRef(null);
+  
+  // Aviator game state
+  const [aviatorBetMad, setAviatorBetMad] = useState("");
+  const [aviatorBusy, setAviatorBusy] = useState(false);
+  const [aviatorResult, setAviatorResult] = useState(null);
+  const [aviatorFlightPosition, setAviatorFlightPosition] = useState({
+    x: 0,
+    y: 0,
+    rotation: 0,
+    multiplier: 0,
+    active: false
+  });
   const gameWheelLabels = [
     "x0.2", "Oops", "x0.3", "x0.4", "x0.5", "Oops",
     "x0.6", "x0.7", "x0.8", "x0.9", "x1.0", "Oops",
@@ -2060,6 +2072,115 @@ if (loginTimeStr) {
       }
     };
   }, [plinkoDrop]);
+
+  const handleAviatorPlay = async () => {
+    const betValue = Number(aviatorBetMad);
+    const betCents = Math.floor(betValue * 100);
+    if (!Number.isFinite(betValue) || betCents < 100 || betCents > 10000) {
+      setAviatorResult({ type: "error", message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+      return;
+    }
+    setAviatorBusy(true);
+    setAviatorResult(null);
+    
+    // Reset flight animation
+    setAviatorFlightPosition({
+      x: -100,
+      y: 20,
+      rotation: -10,
+      multiplier: 0,
+      active: true
+    });
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(buildApiUrl("/api/games/aviator/play"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ betCents })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAviatorResult({ type: "error", message: data.message || "Erreur serveur." });
+        setAviatorFlightPosition(prev => ({ ...prev, active: false }));
+        return;
+      }
+      setUser((prev) => (prev ? { ...prev, balanceCents: data.new_balance_cents } : prev));
+      
+      setAviatorResult({
+        label: data.label,
+        multiplier: data.multiplier,
+        won: data.won,
+        bonusCents: data.bonus_cents
+      });
+      
+      // Animate the flight with the result
+      setTimeout(() => {
+        // Simulate flight animation
+        const animationSteps = 20; // Number of animation steps
+        const stepDuration = 100; // ms per step
+        
+        for (let i = 1; i <= animationSteps; i++) {
+          setTimeout(() => {
+            // Calculate progress (0 to 1)
+            const progress = i / animationSteps;
+            
+            // Calculate flight path (parabolic for visual effect)
+            const currentX = -100 + (progress * 200); // Move from left to right
+            const currentY = 20 - (Math.sin(progress * Math.PI) * 60); // Parabolic path
+            const currentRotation = -10 + (progress * 20); // Rotate from -10 to +10 degrees
+            
+            // Calculate multiplier progress (increase gradually until final value)
+            const currentMultiplier = progress < 0.9 ? (data.multiplier * progress * 1.1) : data.multiplier;
+            
+            setAviatorFlightPosition({
+              x: currentX,
+              y: currentY,
+              rotation: currentRotation,
+              multiplier: parseFloat(currentMultiplier.toFixed(2)),
+              active: true
+            });
+            
+            // At the end of animation, show final result
+            if (i === animationSteps) {
+              setTimeout(() => {
+                setAviatorFlightPosition({
+                  x: currentX,
+                  y: currentY,
+                  rotation: currentRotation,
+                  multiplier: data.multiplier,
+                  active: false
+                });
+                
+                if (data.won) {
+                  setGameWinData({
+                    game: "Aviator",
+                    reward: data.bonus_cents,
+                    newBalance: data.new_balance_cents,
+                    label: data.label
+                  });
+                  setShowGameWinModal(true);
+                }
+              }, stepDuration);
+            }
+          }, i * stepDuration);
+        }
+      }, 100); // Small delay to allow UI update
+      
+    } catch (err) {
+      console.error(err);
+      setAviatorResult({ type: "error", message: "Erreur reseau." });
+      setAviatorFlightPosition(prev => ({ ...prev, active: false }));
+    } finally {
+      // Note: Don't set aviatorBusy to false immediately due to animation
+      setTimeout(() => {
+        setAviatorBusy(false);
+      }, 2100); // Match the animation duration
+    }
+  };
 
   const handleOpenTask = async (task) => {
     if (!task.videoUrl) {
@@ -4135,6 +4256,34 @@ if (loginTimeStr) {
                           />
                         </div>
                       </button>
+
+                      <button
+                        onClick={() => setActiveGameTab("aviator")}
+                        className={`relative overflow-hidden rounded-2xl p-4 border transition-all ${
+                          activeGameTab === "aviator"
+                            ? "border-blue-400 shadow-[0_0_25px_rgba(59,130,246,0.5)]"
+                            : "border-slate-700 hover:border-blue-500"
+                        }`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-cyan-500/10 to-sky-400/10" />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-slate-400">Jeu 4</p>
+                            <p className="text-lg font-semibold text-white">Aviator</p>
+                            <p className="text-[11px] text-slate-400">Vol max x0.8, rarement x2 (0.1%)</p>
+                          </div>
+                          <div
+                            className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_0_22px_rgba(59,130,246,0.7)]"
+                            style={{ animation: "neonFloat 3.5s ease-in-out infinite" }}
+                          >
+                            <div className="w-full h-full rounded-lg border border-white/30 flex items-center justify-center">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
                     </div>
 
                     {activeGameTab === "memory" && (
@@ -4376,6 +4525,84 @@ if (loginTimeStr) {
                                 }}
                               />
                             )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeGameTab === "aviator" && (
+                      <div className="rounded-xl border border-blue-500/30 bg-slate-800/40 p-4">
+                        <p className="text-sm font-semibold text-white">Aviator</p>
+                        <p className="text-xs text-slate-400 mt-1">Vol max x0.8, rarement x2 (0.1%)</p>
+                        <div className="flex items-end gap-3 mt-3">
+                          <div>
+                            <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
+                            <input
+                              type="number"
+                              min={1}
+                              max={100}
+                              step={1}
+                              value={aviatorBetMad}
+                              onChange={(e) => setAviatorBetMad(e.target.value)}
+                              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                              placeholder="1 - 100"
+                              disabled={aviatorBusy}
+                            />
+                          </div>
+                          <button
+                            onClick={handleAviatorPlay}
+                            className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
+                            disabled={aviatorBusy}
+                          >
+                            Jouer
+                          </button>
+                        </div>
+                        {aviatorResult && (
+                          <div className={`mt-3 text-xs ${aviatorResult.type === 'error' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {aviatorResult.won 
+                              ? `Gagne ! Résultat: ${aviatorResult.label} - +${(aviatorResult.bonusCents / 100).toFixed(2)} MAD` 
+                              : `Résultat: ${aviatorResult.label}`}
+                          </div>
+                        )}
+                        <div className="mt-4 relative h-64 rounded-lg bg-gradient-to-b from-sky-900/30 to-slate-900 border border-blue-500/30 overflow-hidden">
+                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.1)_0%,rgba(0,0,0,0)_70%)]"></div>
+                          <div className="absolute inset-0">
+                            {/* Clouds */}
+                            <div className="absolute top-10 left-10 w-16 h-8 bg-white/20 rounded-full animate-pulse"></div>
+                            <div className="absolute top-20 right-16 w-12 h-6 bg-white/15 rounded-full animate-pulse"></div>
+                            <div className="absolute top-32 left-1/3 w-20 h-10 bg-white/25 rounded-full animate-pulse"></div>
+                            <div className="absolute top-44 right-1/4 w-14 h-7 bg-white/20 rounded-full animate-pulse"></div>
+                            
+                            {/* Animated plane */}
+                            <div 
+                              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1000"
+                              style={{
+                                transform: `translate(calc(-50% + ${aviatorFlightPosition.x}px), calc(-50% + ${aviatorFlightPosition.y}px))`,
+                                transition: 'transform 1s ease-in-out'
+                              }}
+                            >
+                              <div className="relative">
+                                <svg 
+                                  className={`w-12 h-12 text-blue-400 transition-transform duration-300 ${aviatorFlightPosition.active ? 'animate-bounce' : ''}`}
+                                  fill="currentColor" 
+                                  viewBox="0 0 24 24"
+                                  style={{
+                                    transform: `rotate(${aviatorFlightPosition.rotation}deg)`
+                                  }}
+                                >
+                                  <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+                                </svg>
+                                {/* Plane trail */}
+                                {aviatorFlightPosition.active && (
+                                  <div className="absolute -left-4 top-1/2 w-6 h-0.5 bg-blue-400/60 transform -translate-y-1/2 rotate-12"></div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Flight path indicator */}
+                            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+                              <p className="text-xs text-slate-400">Multiplicateur: <span className="text-blue-400 font-semibold">{aviatorFlightPosition.multiplier || '0.00'}</span>x</p>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -1899,6 +1899,92 @@ app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint: POST /api/games/aviator/play - Jeu d'aviator (multiplicateur de vol)
+app.post("/api/games/aviator/play", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const betCents = Number(req.body && req.body.betCents);
+    if (!Number.isFinite(betCents) || betCents < 100 || betCents > 10000) {
+      return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
+    }
+
+    // Logique de vol: 99.9% de chance de s'arrêter à x0.8 max, 0.1% de chance d'aller à x2
+    const random = Math.random() * 1000; // 0-1000
+    let multiplier;
+    let label;
+    
+    if (random < 1) { // 0.1% de chance (1 sur 1000)
+      multiplier = 2.0;
+      label = "x2";
+    } else { // 99.9% de chance
+      // Générer un multiplicateur aléatoire entre 0.1 et 0.8
+      multiplier = 0.1 + Math.random() * 0.7; // Entre 0.1 et 0.8
+      // Arrondir au dixième près pour plus de lisibilité
+      multiplier = Math.round(multiplier * 10) / 10;
+      label = `x${multiplier}`;
+    }
+    
+    const payoutCents = Math.floor(betCents * multiplier);
+    const deltaCents = payoutCents - betCents;
+    const bonusCents = Math.max(0, deltaCents);
+    const won = payoutCents >= betCents;
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
+        "SELECT balance_cents FROM users WHERE id = ? FOR UPDATE",
+        [userId]
+      );
+      if (!rows || !rows[0]) {
+        await conn.rollback();
+        return res.status(404).json({ message: "Utilisateur introuvable." });
+      }
+
+      const balanceBefore = rows[0].balance_cents;
+      if (balanceBefore < betCents) {
+        await conn.rollback();
+        return res.status(400).json({ message: "Solde insuffisant pour cette mise." });
+      }
+
+      const newBalance = balanceBefore + deltaCents;
+      await conn.execute("UPDATE users SET balance_cents = ? WHERE id = ?", [
+        newBalance,
+        userId
+      ]);
+      await conn.execute(
+        "INSERT INTO games_history (user_id, game_type, bet_cents, bonus_cents, won, balance_before_cents, balance_after_cents) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+          userId,
+          "aviator",
+          betCents,
+          bonusCents,
+          won ? 1 : 0,
+          balanceBefore,
+          newBalance
+        ]
+      );
+      await conn.commit();
+
+      return res.json({
+        multiplier,
+        label,
+        won,
+        bonus_cents: bonusCents,
+        new_balance_cents: newBalance
+      });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 // Endpoint: GET /api/games/history - Historique des jeux
 app.get("/api/games/history", authMiddleware, async (req, res) => {
   try {
