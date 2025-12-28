@@ -1740,9 +1740,9 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
     const roll = Math.floor(Math.random() * 10000) + 1; // 1-10000
     let index = 0;
     if (roll <= 15) {
-      index = 2; // x2 = 0.15%
+      index = 2; // x2 = 0.08%
     } else if (roll <= 30) {
-      index = 3; // x10 = 0.15%
+      index = 3; // x10 = 0.01%
     } else if (roll <= 5015) {
       index = 0; // x0.1 = 50%
     } else {
