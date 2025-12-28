@@ -1732,26 +1732,22 @@ app.post("/api/games/dice/roll", authMiddleware, async (req, res) => {
     }
 
     const wheel = [
-      { label: "x0.2", multiplier: 0.2 },
-      { label: "x0.3", multiplier: 0.3 },
-      { label: "x0.4", multiplier: 0.4 },
-      { label: "x0.5", multiplier: 0.5 },
-      { label: "x0.6", multiplier: 0.6 },
-      { label: "x0.7", multiplier: 0.7 },
+      { label: "x0.1", multiplier: 0.1 },
       { label: "x0.8", multiplier: 0.8 },
-      { label: "x0.9", multiplier: 0.9 },
-      { label: "x1.0", multiplier: 1.0 },
-      { label: "x1.2", multiplier: 1.2 },
-      { label: "x1.4", multiplier: 1.4 },
-      { label: "x1.6", multiplier: 1.6 },
-      { label: "x1.8", multiplier: 1.8 },
-      { label: "x2.0", multiplier: 2.0 },
-      { label: "x1.1", multiplier: 1.1 },
-      { label: "Oops, try again", multiplier: 0 },
-      { label: "Oops, try again", multiplier: 0 },
-      { label: "Oops, try again", multiplier: 0 }
+      { label: "x2", multiplier: 2.0 },
+      { label: "x10", multiplier: 10.0 }
     ];
-    const index = Math.floor(Math.random() * wheel.length);
+    const roll = Math.floor(Math.random() * 10000) + 1; // 1-10000
+    let index = 0;
+    if (roll <= 15) {
+      index = 2; // x2 = 0.15%
+    } else if (roll <= 30) {
+      index = 3; // x10 = 0.15%
+    } else if (roll <= 5015) {
+      index = 0; // x0.1 = 50%
+    } else {
+      index = 1; // x0.8 = 49.7%
+    }
     const result = wheel[index];
     const payoutCents = Math.floor(betCents * result.multiplier);
     const deltaCents = payoutCents - betCents;
@@ -1825,24 +1821,21 @@ app.post("/api/games/plinko/drop", authMiddleware, async (req, res) => {
     }
 
     const buckets = [
-      { label: "x0.1", multiplier: 0.1 },
-      { label: "x0.8", multiplier: 0.8 },
-      { label: "x1.1", multiplier: 1.1 },
-      { label: "x2", multiplier: 2.0 },
-      { label: "x10", multiplier: 10.0 }
+      { label: "x0.1", multiplier: 0.1, weight: 15 },
+      { label: "x0.8", multiplier: 0.8, weight: 25 },
+      { label: "x1.1", multiplier: 1.1, weight: 30 },
+      { label: "x2", multiplier: 2.0, weight: 20 },
+      { label: "x10", multiplier: 10.0, weight: 10 }
     ];
-    const roll = Math.floor(Math.random() * 10000) + 1; // 1-10000
+    const totalWeight = buckets.reduce((sum, b) => sum + b.weight, 0);
+    let roll = Math.random() * totalWeight;
     let bucketIndex = 0;
-    if (roll === 1) {
-      bucketIndex = 3; // x2 = 0.01%
-    } else if (roll === 2) {
-      bucketIndex = 4; // x10 = 0.01%
-    } else if (roll <= 4002) {
-      bucketIndex = 0; // x0.1 = 40%
-    } else if (roll <= 8002) {
-      bucketIndex = 1; // x0.8 = 40%
-    } else {
-      bucketIndex = 2; // x1.1 = 19.98%
+    for (let i = 0; i < buckets.length; i += 1) {
+      roll -= buckets[i].weight;
+      if (roll <= 0) {
+        bucketIndex = i;
+        break;
+      }
     }
     const bucket = buckets[bucketIndex];
     const payoutCents = Math.floor(betCents * bucket.multiplier);
