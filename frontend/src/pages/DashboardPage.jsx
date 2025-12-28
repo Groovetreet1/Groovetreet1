@@ -2120,26 +2120,49 @@ if (loginTimeStr) {
       // Animate the flight with the result
       setTimeout(() => {
         // Simulate flight animation
-        const animationSteps = 20; // Number of animation steps
-        const stepDuration = 100; // ms per step
+        const animationSteps = 25; // Number of animation steps
+        const stepDuration = 80; // ms per step
         
         for (let i = 1; i <= animationSteps; i++) {
           setTimeout(() => {
             // Calculate progress (0 to 1)
             const progress = i / animationSteps;
             
-            // Calculate flight path (parabolic for visual effect)
-            const currentX = -100 + (progress * 200); // Move from left to right
-            const currentY = 20 - (Math.sin(progress * Math.PI) * 60); // Parabolic path
-            const currentRotation = -10 + (progress * 20); // Rotate from -10 to +10 degrees
+            // Calculate flight path with more realistic 3D movement
+            const currentX = -100 + (progress * 220); // Move from left to right
+            const currentY = 20 - (Math.sin(progress * Math.PI) * 70); // More pronounced parabolic path
             
-            // Calculate multiplier progress (increase gradually until final value)
-            const currentMultiplier = progress < 0.9 ? (data.multiplier * progress * 1.1) : data.multiplier;
+            // Add more dynamic rotation based on flight phase
+            let currentRotation;
+            if (progress < 0.3) {
+              // Takeoff phase - more rotation
+              currentRotation = -15 + (progress * 50);
+            } else if (progress < 0.7) {
+              // Stable flight phase - less rotation
+              currentRotation = 5 + (progress * 10);
+            } else {
+              // Landing phase - more rotation again
+              currentRotation = 15 + ((progress - 0.7) * 30);
+            }
+            
+            // Calculate multiplier progress with more realistic growth
+            let currentMultiplier;
+            if (data.multiplier <= 0.8) {
+              // For normal flights (0.1-0.8), gradually increase
+              currentMultiplier = progress < 0.8 ? (data.multiplier * progress * 1.2) : data.multiplier;
+            } else {
+              // For rare x2 flights, have a more dramatic reveal
+              if (progress < 0.5) {
+                currentMultiplier = data.multiplier * progress * 2; // Build up slowly
+              } else {
+                currentMultiplier = data.multiplier * (0.5 + progress * 0.5); // Dramatic reveal
+              }
+            }
             
             setAviatorFlightPosition({
               x: currentX,
               y: currentY,
-              rotation: currentRotation,
+              rotation: parseFloat(currentRotation.toFixed(1)),
               multiplier: parseFloat(currentMultiplier.toFixed(2)),
               active: true
             });
@@ -2150,7 +2173,7 @@ if (loginTimeStr) {
                 setAviatorFlightPosition({
                   x: currentX,
                   y: currentY,
-                  rotation: currentRotation,
+                  rotation: parseFloat(currentRotation.toFixed(1)),
                   multiplier: data.multiplier,
                   active: false
                 });
@@ -4270,7 +4293,6 @@ if (loginTimeStr) {
                           <div>
                             <p className="text-xs text-slate-400">Jeu 4</p>
                             <p className="text-lg font-semibold text-white">Aviator</p>
-                            <p className="text-[11px] text-slate-400">Vol max x0.8, rarement x2 (0.1%)</p>
                           </div>
                           <div
                             className="w-14 h-14 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_0_22px_rgba(59,130,246,0.7)]"
@@ -4533,7 +4555,6 @@ if (loginTimeStr) {
                     {activeGameTab === "aviator" && (
                       <div className="rounded-xl border border-blue-500/30 bg-slate-800/40 p-4">
                         <p className="text-sm font-semibold text-white">Aviator</p>
-                        <p className="text-xs text-slate-400 mt-1">Vol max x0.8, rarement x2 (0.1%)</p>
                         <div className="flex items-end gap-3 mt-3">
                           <div>
                             <p className="text-[11px] text-slate-400 mb-1">Mise (MAD)</p>
@@ -4564,37 +4585,99 @@ if (loginTimeStr) {
                               : `Résultat: ${aviatorResult.label}`}
                           </div>
                         )}
-                        <div className="mt-4 relative h-64 rounded-lg bg-gradient-to-b from-sky-900/30 to-slate-900 border border-blue-500/30 overflow-hidden">
-                          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.1)_0%,rgba(0,0,0,0)_70%)]"></div>
-                          <div className="absolute inset-0">
-                            {/* Clouds */}
-                            <div className="absolute top-10 left-10 w-16 h-8 bg-white/20 rounded-full animate-pulse"></div>
-                            <div className="absolute top-20 right-16 w-12 h-6 bg-white/15 rounded-full animate-pulse"></div>
-                            <div className="absolute top-32 left-1/3 w-20 h-10 bg-white/25 rounded-full animate-pulse"></div>
-                            <div className="absolute top-44 right-1/4 w-14 h-7 bg-white/20 rounded-full animate-pulse"></div>
+                        <div className="mt-4 relative h-64 rounded-lg bg-gradient-to-b from-sky-900/20 to-slate-900/80 border border-blue-500/30 overflow-hidden">
+                          <style>{`
+                            @keyframes floatClouds {
+                              0%, 100% { transform: translateX(0px) translateY(0px); }
+                              25% { transform: translateX(5px) translateY(-3px); }
+                              50% { transform: translateX(0px) translateY(3px); }
+                              75% { transform: translateX(-5px) translateY(-3px); }
+                            }
                             
-                            {/* Animated plane */}
+                            @keyframes parallaxMove {
+                              0% { transform: translateX(-105%) translateY(0); }
+                              100% { transform: translateX(105%) translateY(0); }
+                            }
+                            
+                            @keyframes plane3DRotate {
+                              0%, 100% { transform: perspective(500px) rotateX(5deg) rotateY(0deg) rotateZ(0deg); }
+                              25% { transform: perspective(500px) rotateX(0deg) rotateY(5deg) rotateZ(2deg); }
+                              50% { transform: perspective(500px) rotateX(-5deg) rotateY(0deg) rotateZ(-2deg); }
+                              75% { transform: perspective(500px) rotateX(0deg) rotateY(-5deg) rotateZ(2deg); }
+                            }
+                            
+                            .parallax-cloud-1 { animation: parallaxMove 25s linear infinite; }
+                            .parallax-cloud-2 { animation: parallaxMove 30s linear infinite reverse; }
+                            .parallax-cloud-3 { animation: parallaxMove 35s linear infinite; }
+                            .parallax-cloud-4 { animation: parallaxMove 40s linear infinite reverse; }
+                          `}</style>
+                          
+                          {/* Animated background with multiple layers */}
+                          <div className="absolute inset-0 overflow-hidden">
+                            {/* Sky gradient background */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-sky-900/30 via-blue-900/20 to-indigo-900/30"></div>
+                            
+                            {/* Stars */}
+                            <div className="absolute inset-0">
+                              {Array.from({ length: 50 }).map((_, i) => (
+                                <div 
+                                  key={i}
+                                  className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+                                  style={{
+                                    top: `${Math.random() * 100}%`,
+                                    left: `${Math.random() * 100}%`,
+                                    animationDelay: `${Math.random() * 2}s`,
+                                    animationDuration: `${1 + Math.random()}s`
+                                  }}
+                                ></div>
+                              ))}
+                            </div>
+                            
+                            {/* Distant mountains */}
+                            <div className="absolute bottom-0 w-full h-16 bg-gradient-to-t from-slate-800/60 to-transparent"></div>
+                            
+                            {/* Animated clouds - multiple layers for parallax effect */}
+                            <div className="absolute inset-0">
+                              <div className="absolute top-12 left-0 parallax-cloud-1 w-24 h-10 bg-white/10 rounded-full"></div>
+                              <div className="absolute top-24 right-0 parallax-cloud-2 w-20 h-8 bg-white/15 rounded-full"></div>
+                              <div className="absolute top-36 left-1/4 parallax-cloud-3 w-28 h-12 bg-white/12 rounded-full"></div>
+                              <div className="absolute top-48 right-1/3 parallax-cloud-4 w-22 h-9 bg-white/18 rounded-full"></div>
+                            </div>
+                            
+                            {/* Animated plane with 3D effects */}
                             <div 
                               className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1000"
                               style={{
-                                transform: `translate(calc(-50% + ${aviatorFlightPosition.x}px), calc(-50% + ${aviatorFlightPosition.y}px))`,
+                                transform: `translate3d(${aviatorFlightPosition.x}px, ${aviatorFlightPosition.y}px, 0)`,
                                 transition: 'transform 1s ease-in-out'
                               }}
                             >
                               <div className="relative">
                                 <svg 
-                                  className={`w-12 h-12 text-blue-400 transition-transform duration-300 ${aviatorFlightPosition.active ? 'animate-bounce' : ''}`}
+                                  className={`w-14 h-14 text-blue-400 transition-transform duration-300 ${aviatorFlightPosition.active ? 'animate-pulse' : ''}`}
                                   fill="currentColor" 
                                   viewBox="0 0 24 24"
                                   style={{
-                                    transform: `rotate(${aviatorFlightPosition.rotation}deg)`
+                                    transform: `perspective(500px) rotateX(5deg) rotateY(${aviatorFlightPosition.rotation}deg) rotateZ(${aviatorFlightPosition.rotation * 0.5}deg)`,
+                                    filter: aviatorFlightPosition.active ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.7))' : 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))'
                                   }}
                                 >
                                   <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
                                 </svg>
+                                
+                                {/* Plane glow effect */}
+                                {aviatorFlightPosition.active && (
+                                  <div 
+                                    className="absolute inset-0 w-14 h-14 bg-blue-400/30 rounded-full blur-sm"
+                                    style={{
+                                      transform: `scale(1.5)`
+                                    }}
+                                  ></div>
+                                )}
+                                
                                 {/* Plane trail */}
                                 {aviatorFlightPosition.active && (
-                                  <div className="absolute -left-4 top-1/2 w-6 h-0.5 bg-blue-400/60 transform -translate-y-1/2 rotate-12"></div>
+                                  <div className="absolute -left-8 top-1/2 w-10 h-0.5 bg-gradient-to-r from-transparent to-blue-400/60 transform -translate-y-1/2"></div>
                                 )}
                               </div>
                             </div>
@@ -4603,6 +4686,23 @@ if (loginTimeStr) {
                             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
                               <p className="text-xs text-slate-400">Multiplicateur: <span className="text-blue-400 font-semibold">{aviatorFlightPosition.multiplier || '0.00'}</span>x</p>
                             </div>
+                            
+                            {/* Result display during flight */}
+                            {aviatorFlightPosition.active && (
+                              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-blue-500/30">
+                                <p className="text-xs text-slate-300">Vol en cours...</p>
+                                <p className="text-sm font-semibold text-blue-400">x{aviatorFlightPosition.multiplier.toFixed(2)}</p>
+                              </div>
+                            )}
+                            
+                            {/* Final result display */}
+                            {!aviatorFlightPosition.active && aviatorResult && (
+                              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-600/80 to-teal-600/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-emerald-400/50 animate-pulse">
+                                <p className="text-xs text-white/90 text-center">Résultat Final</p>
+                                <p className="text-lg font-bold text-white text-center">{aviatorResult.label}</p>
+                                <p className="text-xs text-white/90 text-center">{aviatorResult.won ? 'Gagné' : 'Perdu'}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -1908,20 +1908,37 @@ app.post("/api/games/aviator/play", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Mise invalide. Choisissez entre 1 et 100 MAD." });
     }
 
-    // Logique de vol: 99.9% de chance de s'arrêter à x0.8 max, 0.1% de chance d'aller à x2
-    const random = Math.random() * 1000; // 0-1000
+    // Compter le nombre de parties d'aviator pour cet utilisateur
+    const [countRows] = await pool.execute(
+      "SELECT COUNT(*) as count FROM games_history WHERE user_id = ? AND game_type = 'aviator'",
+      [userId]
+    );
+    
+    const gameCount = countRows[0].count;
+    const isEvery10thGame = (gameCount + 1) % 10 === 0; // +1 car on va bientôt ajouter une partie
+    
     let multiplier;
     let label;
     
-    if (random < 1) { // 0.1% de chance (1 sur 1000)
-      multiplier = 2.0;
-      label = "x2";
-    } else { // 99.9% de chance
-      // Générer un multiplicateur aléatoire entre 0.1 et 0.8
-      multiplier = 0.1 + Math.random() * 0.7; // Entre 0.1 et 0.8
-      // Arrondir au dixième près pour plus de lisibilité
-      multiplier = Math.round(multiplier * 10) / 10;
-      label = `x${multiplier}`;
+    if (isEvery10thGame) {
+      // Every 10th game: multiplier between x1.1 and x2.0
+      multiplier = 1.1 + Math.random() * 0.9; // Entre 1.1 et 2.0
+      // Arrondir au centième près pour plus de précision
+      multiplier = Math.round(multiplier * 100) / 100;
+      label = `x${multiplier.toFixed(2)}`;
+    } else {
+      // Normal game: 99.9% de chance de s'arrêter à x0.8 max, 0.1% de chance d'aller à x2
+      const random = Math.random() * 1000; // 0-1000
+      if (random < 1) { // 0.1% de chance (1 sur 1000)
+        multiplier = 2.0;
+        label = "x2";
+      } else { // 99.9% de chance
+        // Générer un multiplicateur aléatoire entre 0.1 et 0.8
+        multiplier = 0.1 + Math.random() * 0.7; // Entre 0.1 et 0.8
+        // Arrondir au dixième près pour plus de lisibilité
+        multiplier = Math.round(multiplier * 10) / 10;
+        label = `x${multiplier}`;
+      }
     }
     
     const payoutCents = Math.floor(betCents * multiplier);
