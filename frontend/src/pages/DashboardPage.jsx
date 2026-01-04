@@ -2134,7 +2134,13 @@ if (loginTimeStr) {
       });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
-        setGameHistory(data);
+        // Filter game history to only show entries from the last 2 hours (7200000 ms)
+        const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000); // 2 hours in milliseconds
+        const recentGameHistory = data.filter(item => {
+          const itemTime = new Date(item.created_at || item.timestamp || item.date).getTime();
+          return itemTime > twoHoursAgo;
+        });
+        setGameHistory(recentGameHistory);
       }
     } catch (err) {
       console.error(err);
@@ -5039,6 +5045,11 @@ if (loginTimeStr) {
                                 <div className="text-[10px] text-slate-400">
                                   Bonus: {(item.bonus_cents / 100).toFixed(2)} MAD
                                 </div>
+                                {item.created_at && (
+                                  <div className="text-[9px] text-slate-500 mt-1">
+                                    {new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
