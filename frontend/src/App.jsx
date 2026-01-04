@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { buildApiUrl } from "./apiConfig";
 import { LanguageProvider } from "./contexts/LanguageContext.jsx";
 import MobileRedirectGuard from "./components/MobileRedirectGuard.jsx";
@@ -21,6 +21,7 @@ import DepositPage from "./pages/DepositPage.jsx";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import DocumentationPage from "./pages/DocumentationPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ThankYouPage from "./pages/ThankYouPage.jsx";
 
 function App() {
   useEffect(() => {
