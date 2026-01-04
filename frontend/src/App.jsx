@@ -21,7 +21,7 @@ import DepositPage from "./pages/DepositPage.jsx";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard.jsx";
 import DocumentationPage from "./pages/DocumentationPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import ThankYouPage from "./pages/ThankYouPage.jsx";
+
 
 function App() {
   useEffect(() => {
@@ -40,95 +40,95 @@ function App() {
         <MobileFrame>
           <MobileRedirectGuard>
             <Routes>
-        {/* Page d'accueil */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/documentation" element={<DocumentationPage />} />
+          {/* Page d'accueil */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/documentation" element={<DocumentationPage />} />
 
-        {/* Auth */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Auth */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Dashboard (accessible pour tous) */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+          {/* Dashboard (accessible pour tous) */}
+          <Route path="/dashboard" element={<DashboardPage />} />
 
-        {/* Pages réservées aux UTILISATEURS (admin bloqué) */}
-        <Route
-          path="/deposit"
-          element={
-            <ProtectedRoute userOnly={true}>
-              <DepositPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/referrals"
-          element={
-            <ProtectedRoute userOnly={true}>
-              <ReferralsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/withdraw"
-          element={
-            <ProtectedRoute userOnly={true}>
-              <WithdrawPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Pages réservées aux UTILISATEURS (admin bloqué) */}
+          <Route
+            path="/deposit"
+            element={
+              <ProtectedRoute userOnly={true}>
+                <DepositPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/referrals"
+            element={
+              <ProtectedRoute userOnly={true}>
+                <ReferralsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/withdraw"
+            element={
+              <ProtectedRoute userOnly={true}>
+                <WithdrawPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Pages réservées aux ADMINS */}
-        <Route
-          path="/admin/withdrawals"
-          element={
-            <ProtectedRoute adminOnly={true}>
-              <AdminWithdrawalsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/deposits"
-          element={
-            <ProtectedRoute adminOnly={true}>
-              <AdminDepositsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/tasks"
-          element={
-            <ProtectedRoute adminOnly={true}>
-              <AdminTasksPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/finance"
-          element={
-            <ProtectedRoute adminOnly={true}>
-              <AdminFinancePage />
-            </ProtectedRoute>
-          }
-        />
-        {/* Page réservée UNIQUEMENT aux SUPERADMINS */}
-        <Route
-          path="/superadmin"
-          element={
-            <ProtectedRoute superAdminOnly={true}>
-              <SuperAdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+          {/* Pages réservées aux ADMINS */}
+          <Route
+            path="/admin/withdrawals"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminWithdrawalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/deposits"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminDepositsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tasks"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminTasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/finance"
+            element={
+              <ProtectedRoute adminOnly={true}>
+                <AdminFinancePage />
+              </ProtectedRoute>
+            }
+          />
+          {/* Page réservée UNIQUEMENT aux SUPERADMINS */}
+          <Route
+            path="/superadmin"
+            element={
+              <ProtectedRoute superAdminOnly={true}>
+                <SuperAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Catch-all route - 404 redirect to landing page */}
-        <Route path="*" element={<LandingPage />} />
+          {/* Catch-all route - 404 redirect to landing page */}
+          <Route path="*" element={<LandingPage />} />
 
-            </Routes>
-          </MobileRedirectGuard>
-        </MobileFrame>
-      </BrowserRouter>
+              </Routes>
+            </MobileRedirectGuard>
+          </MobileFrame>
+        </BrowserRouter>
     </LanguageProvider>
   );
 }

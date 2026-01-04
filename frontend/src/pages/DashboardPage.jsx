@@ -3305,7 +3305,7 @@ if (loginTimeStr) {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl shadow-black/40 z-50 backdrop-blur-xl overflow-hidden">
+                <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/50 rounded-xl sm:rounded-2xl shadow-2xl shadow-black/40 z-[9999] backdrop-blur-xl overflow-hidden">
                   {/* VIP Background Effect */}
                   <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
@@ -3319,7 +3319,7 @@ if (loginTimeStr) {
                   </div>
                   
                   {/* Header du popup */}
-                  <div className="px-4 py-3 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 border-b border-slate-700/50 flex items-center justify-between relative z-10">
+                  <div className="px-4 py-3 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 border-b border-slate-700/50 flex items-center justify-between relative z-[9999]">
                     <div className="flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-indigo-400">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -3342,7 +3342,7 @@ if (loginTimeStr) {
                   </div>
 
                   {/* Corps des notifications */}
-                  <div className="max-h-96 overflow-y-auto custom-scrollbar relative z-10">
+                  <div className="max-h-96 overflow-y-auto custom-scrollbar relative z-[9998]">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-slate-600 mb-3">
@@ -3796,7 +3796,7 @@ if (loginTimeStr) {
                         </>
                       )}
                       {(user?.dailyRateCents || 0) >= 2000 && (
-                        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-10">
+                        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-0">
                           <div className="text-center px-4">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-emerald-400 mx-auto mb-2">
                               <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
@@ -4486,7 +4486,7 @@ if (loginTimeStr) {
                       }
                     `}</style>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 relative z-0">
                       <button
                         onClick={() => setActiveGameTab("memory")}
                         className={`relative overflow-hidden rounded-2xl p-4 border transition-all ${
