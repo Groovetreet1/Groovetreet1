@@ -261,6 +261,10 @@ export default function DashboardPage() {
   const [referrals, setReferrals] = useState(null);
   const [referralError, setReferralError] = useState("");
   const [notifications, setNotifications] = useState([]);
+  const [dismissedNotifications, setDismissedNotifications] = useState(() => {
+    const saved = localStorage.getItem('dismissedNotifications');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
   const lastStatusesRef = useRef({ deposits: {}, withdrawals: {} });
@@ -972,8 +976,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const addNotification = (message, type = 'info') => {
-      setNotifications((prev) => [{ id: Date.now() + Math.random(), message, type }, ...prev].slice(0, 10));
-      // Ne pas afficher automatiquement les notifications
+      setNotifications((prev) => {
+        // Check if this notification has been dismissed before
+        const notificationKey = `${message}-${type}`;
+        if (dismissedNotifications.includes(notificationKey)) {
+          return prev; // Don't add if it was dismissed
+        }
+        
+        // Add only if it's not already in the list
+        const exists = prev.some(n => n.message === message && n.type === type);
+        if (exists) {
+          return prev;
+        }
+        
+        return [{ id: Date.now() + Math.random(), message, type }, ...prev].slice(0, 10);
+      });
     };
 
     const storedUser = localStorage.getItem("user");
@@ -3335,7 +3352,14 @@ if (loginTimeStr) {
                     </div>
                     <button
                       className="text-xs px-3 py-1.5 text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg transition-all font-medium shadow-md hover:shadow-lg"
-                      onClick={() => setNotifications([])}
+                      onClick={() => {
+                                            // Save all current notification messages to dismissed list
+                                            const currentNotificationKeys = notifications.map(n => `${n.message}-${n.type}`);
+                                            const newDismissed = [...new Set([...dismissedNotifications, ...currentNotificationKeys])];
+                                            setDismissedNotifications(newDismissed);
+                                            localStorage.setItem('dismissedNotifications', JSON.stringify(newDismissed));
+                                            setNotifications([]);
+                                          }}
                     >
                       Clean !
                     </button>
